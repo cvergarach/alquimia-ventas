@@ -281,7 +281,7 @@ Formatea números con punto miles y coma decimales (formato chileno).`;
 
     // Construcción del historial de chat
     const chatHistory = history.map(msg => ({
-      role: msg.role,
+      role: msg.role === 'assistant' ? 'model' : msg.role,
       parts: [{ text: msg.content }]
     }));
 
