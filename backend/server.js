@@ -638,40 +638,57 @@ app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
             return res.json({ success: true, message: 'No se encontraron registros en el archivo', count: 0 });
           }
 
-          const BATCH_SIZE = 500;
+          const BATCH_SIZE = 2000;
+          const CONCURRENCY = 3;
           let insertedCount = 0;
 
-          console.log(`[Upload] Starting batch insertion (${BATCH_SIZE} records per batch)...`);
+          console.log(`[Upload] Starting parallel batch insertion (${BATCH_SIZE} records per batch, ${CONCURRENCY} at a time)...`);
 
+          const batches = [];
           for (let i = 0; i < totalRecords; i += BATCH_SIZE) {
-            const batch = results.slice(i, i + BATCH_SIZE);
-            const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-            const totalBatches = Math.ceil(totalRecords / BATCH_SIZE);
-
-            console.log(`[Upload] Inserting batch ${batchNum}/${totalBatches} (${batch.length} records)...`);
-
-            const { error } = await supabase
-              .from('ventas')
-              .insert(batch);
-
-            if (error) {
-              console.error(`[Upload] Error in batch ${batchNum}:`, error);
-              throw error;
-            }
-
-            insertedCount += batch.length;
+            batches.push(results.slice(i, i + BATCH_SIZE));
           }
 
-          console.log('[Upload] All batches inserted successfully');
+          // Procesar lotes en grupos paralelos para ganar velocidad sin saturar
+          for (let i = 0; i < batches.length; i += CONCURRENCY) {
+            const currentGroup = batches.slice(i, i + CONCURRENCY);
+            const groupNum = Math.floor(i / CONCURRENCY) + 1;
+            const totalGroups = Math.ceil(batches.length / CONCURRENCY);
+
+            console.log(`[Upload] Processing group ${groupNum}/${totalGroups} (${currentGroup.length} batches)...`);
+
+            const insertPromises = currentGroup.map((batch, index) => {
+              const batchTotalIndex = i + index + 1;
+              console.log(`[Upload] - Starting batch ${batchTotalIndex}/${batches.length} (${batch.length} records)`);
+              return supabase.from('ventas').insert(batch);
+            });
+
+            const results_group = await Promise.all(insertPromises);
+
+            // Verificar errores en el grupo
+            results_group.forEach((resp, index) => {
+              if (resp.error) {
+                console.error(`[Upload] Error in batch ${i + index + 1}:`, resp.error);
+                throw new Error(`Error en el lote ${i + index + 1}: ${resp.error.message}`);
+              }
+              insertedCount += currentGroup[index].length;
+            });
+          }
+
+          console.log('[Upload] All parallel batches inserted successfully');
           res.json({
             success: true,
-            message: `${insertedCount} registros insertados correctamente en ${Math.ceil(totalRecords / BATCH_SIZE)} lotes`,
+            message: `${insertedCount} registros insertados correctamente en ${batches.length} lotes paralelos`,
             count: insertedCount
           });
         } catch (error) {
           console.error('[Upload] Error during insertion process:', error);
           if (!res.headersSent) {
-            res.status(500).json({ success: false, error: error.message });
+            res.status(500).json({
+              success: false,
+              error: error.message,
+              details: "Error durante la inserción masiva en Supabase. Verifica el formato de los datos."
+            });
           }
         }
       })
