@@ -5,6 +5,7 @@ import multer from 'multer';
 import csvParser from 'csv-parser';
 import { Readable } from 'stream';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { spawn } from 'child_process';
 import { google } from 'googleapis';
@@ -158,9 +159,10 @@ const tools = [
 
 // Configuración de Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({
-  model: 'gemini-2.5-flash',
-  tools: tools
+
+// Configuración de Anthropic
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 // Configuración de Supabase
@@ -446,10 +448,9 @@ app.get('/health', (req, res) => {
 app.post('/api/chat', async (req, res) => {
   console.log('[API] POST /api/chat - Request received');
   try {
-    const { message, history = [] } = req.body;
-    console.log(`[Chat] User message: "${message.substring(0, 50)}..."`);
+    const { message, history = [], modelConfig = { provider: 'gemini', modelId: 'gemini-2.5-flash' } } = req.body;
+    console.log(`[Chat] User message: "${message.substring(0, 50)}..." using ${modelConfig.provider} (${modelConfig.modelId})`);
 
-    // Contexto del sistema con las herramientas MCP disponibles
     const today = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
     const systemPrompt = `Eres un ANALISTA DE DATOS SENIOR actuando como asistente para el JEFE DE CANAL de Alquimia Datalive.
 Tu objetivo es ayudar al Jefe de Canal a tomar decisiones estratégicas basadas en datos reales.
@@ -470,86 +471,155 @@ DATOS DISPONIBLES:
 
 Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.234,50).`;
 
-    // Construcción del historial de chat
-    const chatHistory = history.map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : msg.role,
-      parts: [{ text: msg.content }]
-    }));
+    if (modelConfig.provider === 'claude') {
+      // --- LÓGICA CLAUDE ---
+      const claudeTools = tools[0].functionDeclarations.map(fd => ({
+        name: fd.name,
+        description: fd.description,
+        input_schema: fd.parameters
+      }));
 
-    chatHistory.push({
-      role: 'user',
-      parts: [{ text: message }]
-    });
+      let messages = history.map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: msg.content
+      }));
+      messages.push({ role: 'user', content: message });
 
-    // Primera llamada a Gemini
-    const chat = model.startChat({
-      history: [
-        { role: 'user', parts: [{ text: systemPrompt }] },
-        { role: 'model', parts: [{ text: 'Entendido. Estoy listo para ayudarte con análisis de datos usando las funciones disponibles.' }] },
-        ...chatHistory
-      ],
-      tools: tools, // Incluir las herramientas aquí
-    });
+      let response = await anthropic.messages.create({
+        model: modelConfig.modelId,
+        max_tokens: 4096,
+        system: systemPrompt,
+        tools: claudeTools,
+        messages: messages,
+      });
 
-    let result = await chat.sendMessage(message);
-    let response = result.response;
+      let callCount = 0;
+      const MAX_CALLS = 5;
+      let toolsUsed = [];
 
-    // Bucle para manejar llamadas a funciones (herramientas)
-    let callCount = 0;
-    const MAX_CALLS = 5;
-    let lastToolResults = [];
+      while (response.stop_reason === 'tool_use' && callCount < MAX_CALLS) {
+        callCount++;
+        messages.push({ role: 'assistant', content: response.content });
 
-    while (response.candidates[0].content.parts.some(p => p.functionCall) && callCount < MAX_CALLS) {
-      callCount++;
-      const parts = response.candidates[0].content.parts;
-      const toolResults = [];
+        const toolResults = [];
+        for (const contentBlock of response.content) {
+          if (contentBlock.type === 'tool_use') {
+            const { name, input, id } = contentBlock;
+            console.log(`[Chat] Claude wants to call tool: ${name}`, input);
+            toolsUsed.push(name);
 
-      for (const part of parts) {
-        if (part.functionCall) {
-          const { name, args } = part.functionCall;
-          console.log(`[Chat] Gemini wants to call tool: ${name}`, args);
+            let toolResult;
+            if (name.startsWith('query_') || name.startsWith('aggregate_') || name.startsWith('get_top_')) {
+              if (name === 'query_metas') {
+                toolResult = await callSheetsTool(name, input);
+              } else {
+                toolResult = await callSupabaseTool(name, input);
+              }
+            } else if (['list_sheets', 'get_forecast', 'get_comisiones', 'get_catalogo'].includes(name)) {
+              toolResult = await callSheetsTool(name, input);
+            } else {
+              toolResult = await callSupabaseTool(name, input);
+            }
 
-          let toolResponse;
-          if (name.startsWith('query_') || name.startsWith('aggregate_') || name.startsWith('get_top_')) {
-            // Supabase tools
-            if (name === 'query_metas') { // This is a Sheets tool, but its name starts with 'query_'
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: id,
+              content: JSON.stringify(toolResult)
+            });
+          }
+        }
+
+        messages.push({ role: 'user', content: toolResults });
+
+        response = await anthropic.messages.create({
+          model: modelConfig.modelId,
+          max_tokens: 4096,
+          system: systemPrompt,
+          tools: claudeTools,
+          messages: messages,
+        });
+      }
+
+      const finalContent = response.content.find(c => c.type === 'text')?.text || "";
+      return res.json({
+        success: true,
+        response: finalContent,
+        toolsUsed: toolsUsed,
+        dataPreview: null
+      });
+
+    } else {
+      // --- LÓGICA GEMINI (Default) ---
+      const model = genAI.getGenerativeModel({
+        model: modelConfig.modelId || 'gemini-2.5-flash',
+        tools: tools
+      });
+
+      const chatHistory = history.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : msg.role,
+        parts: [{ text: msg.content }]
+      }));
+
+      const chat = model.startChat({
+        history: [
+          { role: 'user', parts: [{ text: systemPrompt }] },
+          { role: 'model', parts: [{ text: 'Entendido. Estoy listo para ayudarte.' }] },
+          ...chatHistory
+        ],
+        tools: tools,
+      });
+
+      let result = await chat.sendMessage(message);
+      let response = result.response;
+
+      let callCount = 0;
+      const MAX_CALLS = 5;
+      let lastToolResults = [];
+
+      while (response.candidates[0].content.parts.some(p => p.functionCall) && callCount < MAX_CALLS) {
+        callCount++;
+        const parts = response.candidates[0].content.parts;
+        const toolResults = [];
+
+        for (const part of parts) {
+          if (part.functionCall) {
+            const { name, args } = part.functionCall;
+            console.log(`[Chat] Gemini wants to call tool: ${name}`, args);
+
+            let toolResponse;
+            if (name.startsWith('query_') || name.startsWith('aggregate_') || name.startsWith('get_top_')) {
+              if (name === 'query_metas') {
+                toolResponse = await callSheetsTool(name, args);
+              } else {
+                toolResponse = await callSupabaseTool(name, args);
+              }
+            } else if (['list_sheets', 'get_forecast', 'get_comisiones', 'get_catalogo'].includes(name)) {
               toolResponse = await callSheetsTool(name, args);
             } else {
               toolResponse = await callSupabaseTool(name, args);
             }
-          } else if (name === 'list_sheets' || name === 'get_forecast' || name === 'get_comisiones' || name === 'get_catalogo') {
-            // Sheets tools
-            toolResponse = await callSheetsTool(name, args);
-          } else {
-            // Fallback for any other tool name, assuming it's a Supabase tool
-            console.warn(`[Chat] Unknown tool name encountered: ${name}. Attempting to call as Supabase tool.`);
-            toolResponse = await callSupabaseTool(name, args);
-          }
 
-          toolResults.push({
-            functionResponse: {
-              name: name,
-              response: toolResponse
-            }
-          });
-          lastToolResults.push(name);
+            toolResults.push({
+              functionResponse: {
+                name: name,
+                response: toolResponse
+              }
+            });
+            lastToolResults.push(name);
+          }
         }
+
+        result = await chat.sendMessage(toolResults);
+        response = result.response;
       }
 
-      console.log(`[Chat] Sending tool results back to Gemini (Turn ${callCount})`);
-      result = await chat.sendMessage(toolResults);
-      response = result.response;
+      return res.json({
+        success: true,
+        response: response.text(),
+        toolsUsed: lastToolResults,
+        dataPreview: null
+      });
     }
-
-    const finalResponseText = response.text();
-    console.log('[Chat] Gemini analysis complete, sending final response');
-
-    res.json({
-      success: true,
-      response: finalResponseText,
-      toolsUsed: lastToolResults,
-      dataPreview: null
-    });
 
   } catch (error) {
     console.error('[Chat] Error in /api/chat:', error);

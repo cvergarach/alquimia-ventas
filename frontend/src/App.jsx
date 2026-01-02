@@ -13,6 +13,17 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState(null)
   const [activeSheet, setActiveSheet] = useState('Metas')
+  const [modelConfig, setModelConfig] = useState({ provider: 'gemini', modelId: 'gemini-2.5-flash' })
+
+  const availableModels = [
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini' },
+    { id: 'claude-4-5-opus-latest', name: 'Claude 4.5 Opus', provider: 'claude' },
+    { id: 'claude-4-5-sonnet-latest', name: 'Claude 4.5 Sonnet', provider: 'claude' },
+    { id: 'claude-4-5-haiku-latest', name: 'Claude 4.5 Haiku', provider: 'claude' },
+    { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'claude' },
+    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'claude' },
+  ]
 
   // Cargar ventas de Supabase al inicio
   useEffect(() => {
@@ -64,7 +75,8 @@ function App() {
     try {
       const response = await axios.post(`${API_URL}/api/chat`, {
         message: inputMessage,
-        history: chatMessages
+        history: chatMessages,
+        modelConfig: modelConfig
       })
       console.log('[Frontend] Chat response received:', response.data);
 
@@ -259,7 +271,38 @@ function App() {
 
       {/* Chat con IA */}
       <div className="card chat-section">
-        <h2>💬 Chat con IA (Gemini 2.5 Flash + MCP)</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+          <h2>💬 Chat con IA + MCP</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '0.9rem', color: '#666' }}>Modelo:</span>
+            <select
+              value={`${modelConfig.provider}:${modelConfig.modelId}`}
+              onChange={(e) => {
+                const [provider, modelId] = e.target.value.split(':');
+                setModelConfig({ provider, modelId });
+              }}
+              style={{
+                padding: '8px',
+                borderRadius: '6px',
+                border: '1px solid #ddd',
+                fontSize: '0.9rem',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <optgroup label="Google Gemini">
+                {availableModels.filter(m => m.provider === 'gemini').map(model => (
+                  <option key={model.id} value={`gemini:${model.id}`}>{model.name}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Anthropic Claude">
+                {availableModels.filter(m => m.provider === 'claude').map(model => (
+                  <option key={model.id} value={`claude:${model.id}`}>{model.name}</option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+        </div>
         <div className="chat-container">
           <div className="chat-messages">
             {chatMessages.length === 0 ? (
