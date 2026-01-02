@@ -552,21 +552,42 @@ app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
       })
       .on('end', async () => {
         try {
-          console.log('[Upload] Starting Supabase insertion...');
-          const { data, error } = await supabase
-            .from('ventas')
-            .insert(results);
+          const totalRecords = results.length;
+          console.log(`[Upload] CSV parsing complete. Total records to insert: ${totalRecords}`);
 
-          if (error) {
-            console.error('[Upload] Supabase insert error:', error);
-            throw error;
+          if (totalRecords === 0) {
+            return res.json({ success: true, message: 'No se encontraron registros en el archivo', count: 0 });
           }
 
-          console.log('[Upload] Insertion successful');
+          const BATCH_SIZE = 500;
+          let insertedCount = 0;
+
+          console.log(`[Upload] Starting batch insertion (${BATCH_SIZE} records per batch)...`);
+
+          for (let i = 0; i < totalRecords; i += BATCH_SIZE) {
+            const batch = results.slice(i, i + BATCH_SIZE);
+            const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+            const totalBatches = Math.ceil(totalRecords / BATCH_SIZE);
+
+            console.log(`[Upload] Inserting batch ${batchNum}/${totalBatches} (${batch.length} records)...`);
+
+            const { error } = await supabase
+              .from('ventas')
+              .insert(batch);
+
+            if (error) {
+              console.error(`[Upload] Error in batch ${batchNum}:`, error);
+              throw error;
+            }
+
+            insertedCount += batch.length;
+          }
+
+          console.log('[Upload] All batches inserted successfully');
           res.json({
             success: true,
-            message: `${results.length} registros insertados correctamente`,
-            count: results.length
+            message: `${insertedCount} registros insertados correctamente en ${Math.ceil(totalRecords / BATCH_SIZE)} lotes`,
+            count: insertedCount
           });
         } catch (error) {
           console.error('[Upload] Error during insertion process:', error);
