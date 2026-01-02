@@ -21,26 +21,30 @@ function App() {
   }, [])
 
   const loadVentas = async () => {
+    console.log('[Frontend] Loading ventas from:', `${API_URL}/api/ventas`);
     try {
-      const response = await axios.get(`${API_URL}/api/ventas`)
+      const response = await axios.get(`${API_URL}/api/ventas`);
+      console.log('[Frontend] loadVentas success:', response.data);
       if (response.data.success) {
-        setVentas(response.data.data)
+        setVentas(response.data.data);
       }
     } catch (error) {
-      console.error('Error cargando ventas:', error)
+      console.error('[Frontend] loadVentas error:', error);
     }
   }
 
   const loadSheetsData = async (sheetName) => {
+    console.log(`[Frontend] Loading Google Sheet: ${sheetName}`);
     try {
-      const response = await axios.get(`${API_URL}/api/sheets/${sheetName}`)
+      const response = await axios.get(`${API_URL}/api/sheets/${sheetName}`);
+      console.log(`[Frontend] loadSheetsData (${sheetName}) success:`, response.data);
       if (response.data.success) {
-        setSheetsData(response.data.data)
-        setActiveSheet(sheetName)
+        setSheetsData(response.data.data);
+        setActiveSheet(sheetName);
       }
     } catch (error) {
-      console.error('Error cargando Google Sheets:', error)
-      setSheetsData([])
+      console.error(`[Frontend] loadSheetsData (${sheetName}) error:`, error);
+      setSheetsData([]);
     }
   }
 
@@ -56,11 +60,13 @@ function App() {
     setInputMessage('')
     setLoading(true)
 
+    console.log('[Frontend] Sending chat message:', inputMessage);
     try {
       const response = await axios.post(`${API_URL}/api/chat`, {
         message: inputMessage,
         history: chatMessages
       })
+      console.log('[Frontend] Chat response received:', response.data);
 
       if (response.data.success) {
         const assistantMessage = {
@@ -71,14 +77,15 @@ function App() {
         setChatMessages(prev => [...prev, assistantMessage])
       }
     } catch (error) {
-      console.error('Error en chat:', error)
+      console.error('[Frontend] Chat error:', error);
       setChatMessages(prev => [...prev, {
         role: 'assistant',
         content: 'Lo siento, ocurrió un error al procesar tu mensaje.',
         error: true
       }])
     } finally {
-      setLoading(false)
+      setLoading(false);
+      console.log('[Frontend] Chat loading state: false');
     }
   }
 
@@ -91,22 +98,26 @@ function App() {
 
     setUploadStatus({ type: 'loading', message: 'Subiendo archivo...' })
 
+    console.log(`[Frontend] Starting file upload: ${file.name}, size: ${file.size}`);
     try {
       const response = await axios.post(`${API_URL}/api/upload-csv`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
+      console.log('[Frontend] Upload success:', response.data);
 
       if (response.data.success) {
         setUploadStatus({
           type: 'success',
           message: `✓ ${response.data.message}`
         })
+        console.log('[Frontend] Triggering loadVentas after upload');
         loadVentas() // Recargar datos
         setTimeout(() => setUploadStatus(null), 5000)
       }
     } catch (error) {
+      console.error('[Frontend] Upload error:', error);
       setUploadStatus({
         type: 'error',
         message: `Error: ${error.response?.data?.error || error.message}`

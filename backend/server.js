@@ -16,11 +16,20 @@ const PORT = process.env.PORT || 3001;
 
 // Middlewares
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://alquimia-ventas.vercel.app',
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'https://alquimia-ventas.vercel.app',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    console.log(`[CORS] Request from origin: ${origin}`);
+    if (!origin || allowedOrigins.includes(origin) || origin.includes('vercel.app')) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS] Origin rejected: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -52,12 +61,13 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // Función para ejecutar herramientas MCP de Supabase
 async function callSupabaseTool(toolName, args) {
+  console.log(`[MCP Supabase] Calling tool: ${toolName}`, args);
   try {
     // Implementación directa sin spawn para MVP
     switch (toolName) {
       case 'query_ventas': {
         let query = supabase.from('ventas').select('*');
-        
+
         if (args.filters) {
           Object.entries(args.filters).forEach(([key, value]) => {
             if (key === 'fecha_inicio' && value) {
@@ -69,31 +79,32 @@ async function callSupabaseTool(toolName, args) {
             }
           });
         }
-        
+
         query = query.limit(args.limit || 100);
         const { data, error } = await query;
-        
+
         if (error) throw error;
+        console.log(`[MCP Supabase] Tool ${toolName} success:`, { count: data.length });
         return { success: true, count: data.length, data };
       }
 
       case 'aggregate_ventas': {
         let query = supabase.from('ventas').select('*');
-        
+
         if (args.filters) {
           Object.entries(args.filters).forEach(([key, value]) => {
             if (value) query = query.eq(key, value);
           });
         }
-        
+
         const { data, error } = await query;
         if (error) throw error;
-        
+
         // Agrupar en memoria
         const grouped = {};
         data.forEach(row => {
           const key = args.groupBy.map(field => row[field]).join('|');
-          
+
           if (!grouped[key]) {
             grouped[key] = {
               group: {},
@@ -107,35 +118,35 @@ async function callSupabaseTool(toolName, args) {
               grouped[key].group[field] = row[field];
             });
           }
-          
+
           grouped[key].cantidad += parseFloat(row.cantidad || 0);
           grouped[key].ingreso_neto += parseFloat(row.ingreso_neto || 0);
           grouped[key].costo_neto += parseFloat(row.costo_neto || 0);
           grouped[key].margen += parseFloat(row.margen || 0);
           grouped[key].count += 1;
         });
-        
+
         return { success: true, count: Object.keys(grouped).length, data: Object.values(grouped) };
       }
 
       case 'get_top_productos': {
         let query = supabase.from('ventas').select('*');
-        
+
         if (args.filters) {
           Object.entries(args.filters).forEach(([key, value]) => {
             if (value) query = query.eq(key, value);
           });
         }
-        
+
         const { data, error } = await query;
         if (error) throw error;
-        
+
         const sorted = data.sort((a, b) => {
           const valA = parseFloat(a[args.orderBy] || 0);
           const valB = parseFloat(b[args.orderBy] || 0);
           return valB - valA;
         });
-        
+
         const top = sorted.slice(0, args.limit || 10);
         return { success: true, count: top.length, data: top };
       }
@@ -147,9 +158,10 @@ async function callSupabaseTool(toolName, args) {
 
 // Función para ejecutar herramientas MCP de Google Sheets
 async function callSheetsTool(toolName, args) {
+  console.log(`[MCP Sheets] Calling tool: ${toolName}`, args);
   try {
     const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-    
+
     async function readSheetData(sheetName, range = 'A:Z') {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SHEET_ID,
@@ -177,7 +189,7 @@ async function callSheetsTool(toolName, args) {
       case 'query_metas': {
         const sheetName = args.sheet_name || 'Metas';
         const { data } = await readSheetData(sheetName);
-        
+
         let filtered = data;
         if (args.filters) {
           filtered = data.filter(row => {
@@ -187,7 +199,7 @@ async function callSheetsTool(toolName, args) {
             });
           });
         }
-        
+
         return { success: true, sheet: sheetName, count: filtered.length, data: filtered };
       }
 
@@ -199,10 +211,10 @@ async function callSheetsTool(toolName, args) {
           'get_comisiones': 'Comisiones',
           'get_catalogo': 'Catalogo'
         };
-        
+
         const sheetName = sheetMap[toolName];
         const { data } = await readSheetData(sheetName);
-        
+        console.log(`[MCP Sheets] Tool ${toolName} success:`, { count: data.length });
         return { success: true, sheet: sheetName, count: data.length, data };
       }
 
@@ -233,8 +245,10 @@ app.get('/health', (req, res) => {
 
 // Endpoint principal para chat con IA
 app.post('/api/chat', async (req, res) => {
+  console.log('[API] POST /api/chat - Request received');
   try {
     const { message, history = [] } = req.body;
+    console.log(`[Chat] User message: "${message.substring(0, 50)}..."`);
 
     // Contexto del sistema con las herramientas MCP disponibles
     const systemPrompt = `Eres un asistente de análisis de datos para Alquimia Datalive. 
@@ -290,17 +304,17 @@ Formatea números con punto miles y coma decimales (formato chileno).`;
 
     // Detectar si Gemini necesita usar herramientas (análisis simple por MVP)
     let toolData = null;
-    
+
     // Ejemplo: si menciona "ventas", "productos", "top", etc.
-    if (message.toLowerCase().includes('venta') || 
-        message.toLowerCase().includes('producto') ||
-        message.toLowerCase().includes('marca') ||
-        message.toLowerCase().includes('top')) {
-      
+    if (message.toLowerCase().includes('venta') ||
+      message.toLowerCase().includes('producto') ||
+      message.toLowerCase().includes('marca') ||
+      message.toLowerCase().includes('top')) {
+
       // Por ahora, hacer una consulta general de ventas
       const data = await callSupabaseTool('query_ventas', { limit: 50 });
       toolData = data;
-      
+
       // Enviar datos a Gemini para análisis
       const analysisPrompt = `
 Pregunta del usuario: ${message}
@@ -315,6 +329,7 @@ Usa formato de números chileno (punto para miles, coma para decimales).`;
       response = analysisResult.response.text();
     }
 
+    console.log('[Chat] Gemini analysis complete, sending response');
     res.json({
       success: true,
       response: response,
@@ -323,7 +338,7 @@ Usa formato de números chileno (punto para miles, coma para decimales).`;
     });
 
   } catch (error) {
-    console.error('Error en /api/chat:', error);
+    console.error('[Chat] Error in /api/chat:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -360,10 +375,13 @@ app.get('/api/sheets/:sheetName', async (req, res) => {
 
 // Upload CSV
 app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
+  console.log('[API] POST /api/upload-csv - Request received');
   try {
     if (!req.file) {
+      console.warn('[Upload] No file provided');
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
+    console.log(`[Upload] File received: ${req.file.originalname}, size: ${req.file.size} bytes`);
 
     const results = [];
     const stream = Readable.from(req.file.buffer);
@@ -399,23 +417,34 @@ app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
       })
       .on('end', async () => {
         try {
+          console.log('[Upload] Starting Supabase insertion...');
           const { data, error } = await supabase
             .from('ventas')
             .insert(results);
 
-          if (error) throw error;
+          if (error) {
+            console.error('[Upload] Supabase insert error:', error);
+            throw error;
+          }
 
+          console.log('[Upload] Insertion successful');
           res.json({
             success: true,
             message: `${results.length} registros insertados correctamente`,
             count: results.length
           });
         } catch (error) {
-          res.status(500).json({ success: false, error: error.message });
+          console.error('[Upload] Error during insertion process:', error);
+          if (!res.headersSent) {
+            res.status(500).json({ success: false, error: error.message });
+          }
         }
       })
       .on('error', (error) => {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('[Upload] CSV parsing error:', error);
+        if (!res.headersSent) {
+          res.status(500).json({ success: false, error: error.message });
+        }
       });
 
   } catch (error) {
