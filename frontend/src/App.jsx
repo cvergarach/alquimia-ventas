@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import './index.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -324,7 +326,11 @@ function App() {
                       </span>
                     )}
                   </div>
-                  <div className="message-content">{msg.content}</div>
+                  <div className="message-content">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               ))
             )}
