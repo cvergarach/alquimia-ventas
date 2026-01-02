@@ -1,6 +1,6 @@
 # 🚀 Alquimia Datalive - MVP
 
-Sistema de análisis conversacional de datos con IA usando **MCP (Model Context Protocol)**, **Gemini 2.5 Flash**, **Supabase** y **Google Sheets**.
+Sistema de análisis conversacional de datos con IA usando **MCP (Model Context Protocol)**, **Multi-Model Support (Gemini + Claude)**, **Supabase** y **Google Sheets**.
 
 ## 📋 Características
 
@@ -17,9 +17,13 @@ React (Vercel)
     ↓
 Express API (Render)
     ↓
-Gemini 2.5 Flash + MCP
-    ├→ MCP Server: Supabase (ventas)
-    └→ MCP Server: Google Sheets (metas, forecast, comisiones, catálogo)
+Multi-Model AI Orchestrator
+    ├→ Google Gemini (Pro/Flash)
+    ├→ Anthropic Claude (Opus/Sonnet/Haiku)
+    ↓
+MCP Integration
+    ├→ Supabase (ventas)
+    └→ Google Sheets (metas, forecast, comisiones, catálogo)
 ```
 
 ## 📦 Stack Tecnológico
@@ -30,6 +34,7 @@ Gemini 2.5 Flash + MCP
 - Supabase Client
 - Google APIs (Sheets)
 - Gemini AI (@google/generative-ai)
+- Anthropic Claude (@anthropic-ai/sdk)
 
 ### Frontend
 - React + Vite
@@ -106,6 +111,7 @@ Editar `.env` con tus credenciales:
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_ANON_KEY=eyJhbGc...
 GEMINI_API_KEY=AIzaSy...
+ANTHROPIC_API_KEY=sk-ant-api03...
 GOOGLE_CLIENT_EMAIL=alquimia@project.iam.gserviceaccount.com
 GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 GOOGLE_SHEET_ID=1AbC123XyZ456

@@ -18,11 +18,11 @@ function App() {
   const availableModels = [
     { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini' },
     { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini' },
-    { id: 'claude-4-5-opus-latest', name: 'Claude 4.5 Opus', provider: 'claude' },
-    { id: 'claude-4-5-sonnet-latest', name: 'Claude 4.5 Sonnet', provider: 'claude' },
-    { id: 'claude-4-5-haiku-latest', name: 'Claude 4.5 Haiku', provider: 'claude' },
-    { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'claude' },
-    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'claude' },
+    { id: 'claude-opus-4-5', name: 'Claude 4.5 Opus', provider: 'claude' },
+    { id: 'claude-sonnet-4-5', name: 'Claude 4.5 Sonnet', provider: 'claude' },
+    { id: 'claude-haiku-4-5', name: 'Claude 4.5 Haiku', provider: 'claude' },
+    { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', provider: 'claude' },
+    { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', provider: 'claude' },
   ]
 
   // Cargar ventas de Supabase al inicio
