@@ -100,6 +100,29 @@ const tools = [
         }
       },
       {
+        name: "get_performance_report",
+        description: "Compara el rendimiento de ventas de una fecha con el día anterior y el promedio de los últimos 3 días.",
+        parameters: {
+          type: "object",
+          properties: {
+            date: { type: "string", description: "Fecha de referencia (YYYY-MM-DD)" },
+            filters: { type: "object", properties: { canal: { type: "string" }, marca: { type: "string" } } }
+          },
+          required: ["date"]
+        }
+      },
+      {
+        name: "check_gaps",
+        description: "Identifica brechas de rendimiento comparando ventas reales con metas o forecast.",
+        parameters: {
+          type: "object",
+          properties: {
+            date: { type: "string", description: "Fecha o mes de referencia" },
+            canal: { type: "string" }
+          }
+        }
+      },
+      {
         name: "query_metas",
         description: "Consulta metas de ventas desde la hoja 'Metas'.",
         parameters: {
@@ -269,6 +292,62 @@ async function callSupabaseTool(toolName, args) {
 
         const top = sorted.slice(0, args.limit || 10);
         return { success: true, count: top.length, data: top };
+      }
+
+      case 'get_performance_report': {
+        const refDate = new Date(args.date);
+        const yesterday = new Date(refDate);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const threeDaysAgo = new Date(refDate);
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+        const formatDate = (d) => d.toISOString().split('T')[0];
+
+        // 1. Ventas día referencia
+        const { data: refData } = await callSupabaseTool('aggregate_ventas', {
+          groupBy: ['canal'],
+          filters: { ...args.filters, dia: args.date }
+        });
+
+        // 2. Ventas ayer
+        const { data: yestData } = await callSupabaseTool('aggregate_ventas', {
+          groupBy: ['canal'],
+          filters: { ...args.filters, dia: formatDate(yesterday) }
+        });
+
+        // 3. Ventas últimos 3 días (promedio)
+        const { data: last3Data } = await callSupabaseTool('aggregate_ventas', {
+          groupBy: ['canal'],
+          filters: {
+            ...args.filters,
+            fecha_inicio: formatDate(threeDaysAgo),
+            fecha_fin: formatDate(yesterday)
+          }
+        });
+
+        return {
+          success: true,
+          reference_date: args.date,
+          data: {
+            today: refData,
+            yesterday: yestData,
+            avg_last_3_days: last3Data.map(d => ({ ...d, cantidad: d.cantidad / 3, ingreso_neto: d.ingreso_neto / 3 }))
+          }
+        };
+      }
+
+      case 'check_gaps': {
+        // Esta herramienta combina ventas con metas
+        const sales = await callSupabaseTool('aggregate_ventas', { groupBy: ['canal'], filters: args.filters });
+        const metas = await callSheetsTool('query_metas', { filters: args.filters });
+
+        return {
+          success: true,
+          sales: sales.data,
+          metas: metas.data,
+          analysis: "Compara las ventas vs las metas para identificar donde el canal está caído."
+        };
       }
     }
   } catch (error) {
