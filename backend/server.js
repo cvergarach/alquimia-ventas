@@ -101,14 +101,28 @@ const tools = [
       },
       {
         name: "query_metas",
-        description: "Consulta metas de ventas desde Google Sheets.",
+        description: "Consulta metas de ventas desde la hoja 'Metas'.",
         parameters: {
           type: "object",
           properties: {
-            sheet_name: { type: "string", description: "Nombre de la hoja (Metas, Forecast, Comisiones, Catalogo)" },
             filters: { type: "object" }
           }
         }
+      },
+      {
+        name: "get_forecast",
+        description: "Obtiene el forecast de ventas desde la hoja 'Forecast'.",
+        parameters: { type: "object", properties: {} }
+      },
+      {
+        name: "get_comisiones",
+        description: "Obtiene la tabla de comisiones desde la hoja 'Comisiones'.",
+        parameters: { type: "object", properties: {} }
+      },
+      {
+        name: "get_catalogo",
+        description: "Obtiene el catálogo de productos desde la hoja 'Catalogo'.",
+        parameters: { type: "object", properties: {} }
       },
       {
         name: "list_sheets",
@@ -357,33 +371,25 @@ app.post('/api/chat', async (req, res) => {
     console.log(`[Chat] User message: "${message.substring(0, 50)}..."`);
 
     // Contexto del sistema con las herramientas MCP disponibles
-    const systemPrompt = `Eres un asistente de análisis de datos para Alquimia Datalive. 
-Tienes acceso a dos fuentes de datos a través de MCP (Model Context Protocol):
+    const today = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
+    const systemPrompt = `Eres un ANALISTA DE DATOS SENIOR actuando como asistente para el JEFE DE CANAL de Alquimia Datalive.
+Tu objetivo es ayudar al Jefe de Canal a tomar decisiones estratégicas basadas en datos reales.
 
-1. SUPABASE - Base de datos de ventas con:
-   - Columnas: DIA, CANAL, SKU, Cantidad, ADQUISICIÓN, MARCA, MODELO, ORIGEN, SUCURSAL, Ingreso_Neto, Costo_Neto, Margen
-   - Formato numérico chileno: punto (.) separador de miles, coma (,) separador de decimales
-   
-   Herramientas disponibles:
-   - query_ventas: consulta datos con filtros
-   - aggregate_ventas: agrega datos por dimensiones
-   - get_top_productos: obtiene top productos por criterio
+FECHA ACTUAL (Chile): ${today}
 
-2. GOOGLE SHEETS - Datos de metas, forecast, comisiones y catálogo
-   
-   Herramientas disponibles:
-   - query_metas: consulta metas mensuales
-   - get_forecast: obtiene forecast de ventas
-   - get_comisiones: tabla de comisiones
-   - get_catalogo: catálogo de productos
-   - list_sheets: lista hojas disponibles
+DIRECTRICES DE ANÁLISIS:
+1. PERSONA: Responde de forma ejecutiva, proactiva y orientada a resultados. No solo des números, da INSIGHTS.
+2. COMPARATIVAS: Cuando pregunten "cómo voy", compara SIEMPRE contra:
+   - El día anterior o promedio de los últimos días si es posible.
+   - Las metas o el forecast (usa las herramientas de Sheets).
+3. IDENTIFICACIÓN DE GAPS: Indica claramente dónde el canal/modelo está "caído" (bajo objetivo o tendencia) y dónde está "mejor" (sobre objetivo).
+4. MULTI-PASO: No dudes en llamar a varias herramientas en secuencia para dar una respuesta completa (ej: primero ventas, luego metas, luego forecast).
 
-Cuando el usuario haga una pregunta:
-1. Determina qué herramienta(s) necesitas usar
-2. Indica claramente qué herramienta usarás
-3. Proporciona un análisis claro y en español
+DATOS DISPONIBLES:
+1. SUPABASE (Ventas): DIA (YYYY-MM-DD), CANAL, SKU, Cantidad, Ingreso_Neto, Costo_Neto, Margen.
+2. GOOGLE SHEETS: Metas, Forecast, Comisiones, Catalogo.
 
-Formatea números con punto miles y coma decimales (formato chileno).`;
+Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.234,50).`;
 
     // Construcción del historial de chat
     const chatHistory = history.map(msg => ({
