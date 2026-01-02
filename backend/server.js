@@ -1,0 +1,430 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import multer from 'multer';
+import csvParser from 'csv-parser';
+import { Readable } from 'stream';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '@supabase/supabase-js';
+import { spawn } from 'child_process';
+import { google } from 'googleapis';
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Middlewares
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}));
+app.use(express.json());
+
+// Configuración de Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+// Configuración de Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
+
+// Configuración de Google Sheets
+const auth = new google.auth.GoogleAuth({
+  credentials: {
+    client_email: process.env.GOOGLE_CLIENT_EMAIL,
+    private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  },
+  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+});
+const sheets = google.sheets({ version: 'v4', auth });
+
+// Configuración de Multer para upload de archivos
+const upload = multer({ storage: multer.memoryStorage() });
+
+// ============= FUNCIONES MCP ============= 
+
+// Función para ejecutar herramientas MCP de Supabase
+async function callSupabaseTool(toolName, args) {
+  try {
+    // Implementación directa sin spawn para MVP
+    switch (toolName) {
+      case 'query_ventas': {
+        let query = supabase.from('ventas').select('*');
+        
+        if (args.filters) {
+          Object.entries(args.filters).forEach(([key, value]) => {
+            if (key === 'fecha_inicio' && value) {
+              query = query.gte('dia', value);
+            } else if (key === 'fecha_fin' && value) {
+              query = query.lte('dia', value);
+            } else if (value) {
+              query = query.eq(key, value);
+            }
+          });
+        }
+        
+        query = query.limit(args.limit || 100);
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        return { success: true, count: data.length, data };
+      }
+
+      case 'aggregate_ventas': {
+        let query = supabase.from('ventas').select('*');
+        
+        if (args.filters) {
+          Object.entries(args.filters).forEach(([key, value]) => {
+            if (value) query = query.eq(key, value);
+          });
+        }
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        // Agrupar en memoria
+        const grouped = {};
+        data.forEach(row => {
+          const key = args.groupBy.map(field => row[field]).join('|');
+          
+          if (!grouped[key]) {
+            grouped[key] = {
+              group: {},
+              cantidad: 0,
+              ingreso_neto: 0,
+              costo_neto: 0,
+              margen: 0,
+              count: 0
+            };
+            args.groupBy.forEach(field => {
+              grouped[key].group[field] = row[field];
+            });
+          }
+          
+          grouped[key].cantidad += parseFloat(row.cantidad || 0);
+          grouped[key].ingreso_neto += parseFloat(row.ingreso_neto || 0);
+          grouped[key].costo_neto += parseFloat(row.costo_neto || 0);
+          grouped[key].margen += parseFloat(row.margen || 0);
+          grouped[key].count += 1;
+        });
+        
+        return { success: true, count: Object.keys(grouped).length, data: Object.values(grouped) };
+      }
+
+      case 'get_top_productos': {
+        let query = supabase.from('ventas').select('*');
+        
+        if (args.filters) {
+          Object.entries(args.filters).forEach(([key, value]) => {
+            if (value) query = query.eq(key, value);
+          });
+        }
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        const sorted = data.sort((a, b) => {
+          const valA = parseFloat(a[args.orderBy] || 0);
+          const valB = parseFloat(b[args.orderBy] || 0);
+          return valB - valA;
+        });
+        
+        const top = sorted.slice(0, args.limit || 10);
+        return { success: true, count: top.length, data: top };
+      }
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Función para ejecutar herramientas MCP de Google Sheets
+async function callSheetsTool(toolName, args) {
+  try {
+    const SHEET_ID = process.env.GOOGLE_SHEET_ID;
+    
+    async function readSheetData(sheetName, range = 'A:Z') {
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: `${sheetName}!${range}`,
+      });
+
+      const rows = response.data.values;
+      if (!rows || rows.length === 0) {
+        return { headers: [], data: [] };
+      }
+
+      const headers = rows[0];
+      const data = rows.slice(1).map(row => {
+        const obj = {};
+        headers.forEach((header, index) => {
+          obj[header] = row[index] || '';
+        });
+        return obj;
+      });
+
+      return { headers, data };
+    }
+
+    switch (toolName) {
+      case 'query_metas': {
+        const sheetName = args.sheet_name || 'Metas';
+        const { data } = await readSheetData(sheetName);
+        
+        let filtered = data;
+        if (args.filters) {
+          filtered = data.filter(row => {
+            return Object.entries(args.filters).every(([key, value]) => {
+              if (!value) return true;
+              return row[key]?.toLowerCase().includes(value.toLowerCase());
+            });
+          });
+        }
+        
+        return { success: true, sheet: sheetName, count: filtered.length, data: filtered };
+      }
+
+      case 'get_forecast':
+      case 'get_comisiones':
+      case 'get_catalogo': {
+        const sheetMap = {
+          'get_forecast': 'Forecast',
+          'get_comisiones': 'Comisiones',
+          'get_catalogo': 'Catalogo'
+        };
+        
+        const sheetName = sheetMap[toolName];
+        const { data } = await readSheetData(sheetName);
+        
+        return { success: true, sheet: sheetName, count: data.length, data };
+      }
+
+      case 'list_sheets': {
+        const response = await sheets.spreadsheets.get({
+          spreadsheetId: SHEET_ID,
+        });
+
+        const sheetsList = response.data.sheets.map(sheet => ({
+          name: sheet.properties.title,
+          id: sheet.properties.sheetId
+        }));
+
+        return { success: true, spreadsheetId: SHEET_ID, sheets: sheetsList };
+      }
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============= ENDPOINTS ============= 
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Alquimia Backend running' });
+});
+
+// Endpoint principal para chat con IA
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message, history = [] } = req.body;
+
+    // Contexto del sistema con las herramientas MCP disponibles
+    const systemPrompt = `Eres un asistente de análisis de datos para Alquimia Datalive. 
+Tienes acceso a dos fuentes de datos a través de MCP (Model Context Protocol):
+
+1. SUPABASE - Base de datos de ventas con:
+   - Columnas: DIA, CANAL, SKU, Cantidad, ADQUISICIÓN, MARCA, MODELO, ORIGEN, SUCURSAL, Ingreso_Neto, Costo_Neto, Margen
+   - Formato numérico chileno: punto (.) separador de miles, coma (,) separador de decimales
+   
+   Herramientas disponibles:
+   - query_ventas: consulta datos con filtros
+   - aggregate_ventas: agrega datos por dimensiones
+   - get_top_productos: obtiene top productos por criterio
+
+2. GOOGLE SHEETS - Datos de metas, forecast, comisiones y catálogo
+   
+   Herramientas disponibles:
+   - query_metas: consulta metas mensuales
+   - get_forecast: obtiene forecast de ventas
+   - get_comisiones: tabla de comisiones
+   - get_catalogo: catálogo de productos
+   - list_sheets: lista hojas disponibles
+
+Cuando el usuario haga una pregunta:
+1. Determina qué herramienta(s) necesitas usar
+2. Indica claramente qué herramienta usarás
+3. Proporciona un análisis claro y en español
+
+Formatea números con punto miles y coma decimales (formato chileno).`;
+
+    // Construcción del historial de chat
+    const chatHistory = history.map(msg => ({
+      role: msg.role,
+      parts: [{ text: msg.content }]
+    }));
+
+    chatHistory.push({
+      role: 'user',
+      parts: [{ text: message }]
+    });
+
+    // Primera llamada a Gemini para determinar qué herramientas usar
+    const chat = model.startChat({
+      history: [
+        { role: 'user', parts: [{ text: systemPrompt }] },
+        { role: 'model', parts: [{ text: 'Entendido. Estoy listo para ayudarte con análisis de datos de ventas usando las herramientas MCP disponibles.' }] },
+        ...chatHistory
+      ]
+    });
+
+    const result = await chat.sendMessage(message);
+    let response = result.response.text();
+
+    // Detectar si Gemini necesita usar herramientas (análisis simple por MVP)
+    let toolData = null;
+    
+    // Ejemplo: si menciona "ventas", "productos", "top", etc.
+    if (message.toLowerCase().includes('venta') || 
+        message.toLowerCase().includes('producto') ||
+        message.toLowerCase().includes('marca') ||
+        message.toLowerCase().includes('top')) {
+      
+      // Por ahora, hacer una consulta general de ventas
+      const data = await callSupabaseTool('query_ventas', { limit: 50 });
+      toolData = data;
+      
+      // Enviar datos a Gemini para análisis
+      const analysisPrompt = `
+Pregunta del usuario: ${message}
+
+Datos de ventas obtenidos:
+${JSON.stringify(toolData.data, null, 2)}
+
+Por favor, analiza estos datos y responde la pregunta del usuario de forma clara y concisa en español.
+Usa formato de números chileno (punto para miles, coma para decimales).`;
+
+      const analysisResult = await model.generateContent(analysisPrompt);
+      response = analysisResult.response.text();
+    }
+
+    res.json({
+      success: true,
+      response: response,
+      toolsUsed: toolData ? ['query_ventas'] : [],
+      dataPreview: toolData ? toolData.data.slice(0, 5) : null
+    });
+
+  } catch (error) {
+    console.error('Error en /api/chat:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Obtener todas las ventas
+app.get('/api/ventas', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('ventas')
+      .select('*')
+      .limit(100);
+
+    if (error) throw error;
+
+    res.json({ success: true, count: data.length, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener datos de Google Sheets
+app.get('/api/sheets/:sheetName', async (req, res) => {
+  try {
+    const { sheetName } = req.params;
+    const result = await callSheetsTool('query_metas', { sheet_name: sheetName });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Upload CSV
+app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No file uploaded' });
+    }
+
+    const results = [];
+    const stream = Readable.from(req.file.buffer);
+
+    stream
+      .pipe(csvParser({
+        separator: ';', // Ajustar según tu CSV
+        mapHeaders: ({ header }) => header.trim()
+      }))
+      .on('data', (data) => {
+        // Convertir formato chileno a float
+        const parseChileanNumber = (str) => {
+          if (!str) return 0;
+          return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+        };
+
+        const record = {
+          dia: data.DIA,
+          canal: data.CANAL,
+          sku: data.SKU,
+          cantidad: parseInt(data.Cantidad) || 0,
+          adquisicion: data.ADQUISICIÓN,
+          marca: data.MARCA,
+          modelo: data.MODELO,
+          origen: data.ORIGEN,
+          sucursal: data.SUCURSAL,
+          ingreso_neto: parseChileanNumber(data.Ingreso_Neto),
+          costo_neto: parseChileanNumber(data.Costo_Neto),
+          margen: parseChileanNumber(data.Margen)
+        };
+
+        results.push(record);
+      })
+      .on('end', async () => {
+        try {
+          const { data, error } = await supabase
+            .from('ventas')
+            .insert(results);
+
+          if (error) throw error;
+
+          res.json({
+            success: true,
+            message: `${results.length} registros insertados correctamente`,
+            count: results.length
+          });
+        } catch (error) {
+          res.status(500).json({ success: false, error: error.message });
+        }
+      })
+      .on('error', (error) => {
+        res.status(500).json({ success: false, error: error.message });
+      });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Iniciar servidor
+app.listen(PORT, () => {
+  console.log(`🚀 Alquimia Backend running on port ${PORT}`);
+  console.log(`📊 Supabase: ${process.env.SUPABASE_URL ? 'Connected' : 'Not configured'}`);
+  console.log(`🤖 Gemini: ${process.env.GEMINI_API_KEY ? 'Configured' : 'Not configured'}`);
+  console.log(`📈 Google Sheets: ${process.env.GOOGLE_SHEET_ID ? 'Configured' : 'Not configured'}`);
+});
+
+export default app;

@@ -1,0 +1,23 @@
+# render.yaml - Configuración para Render
+
+services:
+  - type: web
+    name: alquimia-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      # Las siguientes variables deben configurarse manualmente en Render Dashboard
+      # SUPABASE_URL
+      # SUPABASE_ANON_KEY
+      # GEMINI_API_KEY
+      # GOOGLE_CLIENT_EMAIL
+      # GOOGLE_PRIVATE_KEY
+      # GOOGLE_SHEET_ID
+      # FRONTEND_URL
