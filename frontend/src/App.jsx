@@ -3,6 +3,7 @@ import axios from 'axios'
 import './index.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+console.log('Alquimia API URL:', API_URL)
 
 function App() {
   const [ventas, setVentas] = useState([])
@@ -98,17 +99,17 @@ function App() {
       })
 
       if (response.data.success) {
-        setUploadStatus({ 
-          type: 'success', 
-          message: `✓ ${response.data.message}` 
+        setUploadStatus({
+          type: 'success',
+          message: `✓ ${response.data.message}`
         })
         loadVentas() // Recargar datos
         setTimeout(() => setUploadStatus(null), 5000)
       }
     } catch (error) {
-      setUploadStatus({ 
-        type: 'error', 
-        message: `Error: ${error.response?.data?.error || error.message}` 
+      setUploadStatus({
+        type: 'error',
+        message: `Error: ${error.response?.data?.error || error.message}`
       })
       setTimeout(() => setUploadStatus(null), 8000)
     }
