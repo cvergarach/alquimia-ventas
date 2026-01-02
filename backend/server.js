@@ -47,6 +47,9 @@ const tools = [
             filters: {
               type: "object",
               properties: {
+                dia: { type: "string", description: "Día específico (YYYY-MM-DD)" },
+                fecha_inicio: { type: "string", description: "Fecha desde (YYYY-MM-DD)" },
+                fecha_fin: { type: "string", description: "Fecha hasta (YYYY-MM-DD)" },
                 canal: { type: "string" },
                 marca: { type: "string" },
                 sku: { type: "string" },
@@ -69,7 +72,16 @@ const tools = [
               items: { type: "string" },
               description: "Dimensiones para agrupar, p.ej. ['canal', 'marca']"
             },
-            filters: { type: "object" }
+            filters: {
+              type: "object",
+              properties: {
+                dia: { type: "string", description: "Día específico (YYYY-MM-DD)" },
+                fecha_inicio: { type: "string", description: "Fecha desde (YYYY-MM-DD)" },
+                fecha_fin: { type: "string", description: "Fecha hasta (YYYY-MM-DD)" },
+                canal: { type: "string" },
+                marca: { type: "string" }
+              }
+            }
           },
           required: ["groupBy"]
         }
@@ -150,6 +162,8 @@ async function callSupabaseTool(toolName, args) {
               query = query.gte('dia', value);
             } else if (key === 'fecha_fin' && value) {
               query = query.lte('dia', value);
+            } else if (key === 'dia' && value) {
+              query = query.eq('dia', value);
             } else if (value) {
               query = query.eq(key, value);
             }
@@ -169,7 +183,15 @@ async function callSupabaseTool(toolName, args) {
 
         if (args.filters) {
           Object.entries(args.filters).forEach(([key, value]) => {
-            if (value) query = query.eq(key, value);
+            if (key === 'fecha_inicio' && value) {
+              query = query.gte('dia', value);
+            } else if (key === 'fecha_fin' && value) {
+              query = query.lte('dia', value);
+            } else if (key === 'dia' && value) {
+              query = query.eq('dia', value);
+            } else if (value) {
+              query = query.eq(key, value);
+            }
           });
         }
 
@@ -210,7 +232,15 @@ async function callSupabaseTool(toolName, args) {
 
         if (args.filters) {
           Object.entries(args.filters).forEach(([key, value]) => {
-            if (value) query = query.eq(key, value);
+            if (key === 'fecha_inicio' && value) {
+              query = query.gte('dia', value);
+            } else if (key === 'fecha_fin' && value) {
+              query = query.lte('dia', value);
+            } else if (key === 'dia' && value) {
+              query = query.eq('dia', value);
+            } else if (value) {
+              query = query.eq(key, value);
+            }
           });
         }
 
