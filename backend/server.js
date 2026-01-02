@@ -207,7 +207,7 @@ async function callSupabaseTool(toolName, args) {
           });
         }
 
-        query = query.limit(args.limit || 100);
+        query = query.limit(args.limit || 1000); // Aumentado a 1000 por defecto
         const { data, error } = await query;
 
         if (error) throw error;
@@ -566,11 +566,26 @@ app.get('/api/ventas', async (req, res) => {
     const { data, error } = await supabase
       .from('ventas')
       .select('*')
-      .limit(100);
+      .order('dia', { ascending: false })
+      .limit(500); // Mostrar los últimos 500 registros para no saturar el frontend
 
     if (error) throw error;
 
     res.json({ success: true, count: data.length, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener el conteo total de registros
+app.get('/api/ventas-count', async (req, res) => {
+  try {
+    const { count, error } = await supabase
+      .from('ventas')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) throw error;
+    res.json({ success: true, total: count });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
