@@ -34,9 +34,85 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Configuración de herramientas para Gemini
+const tools = [
+  {
+    functionDeclarations: [
+      {
+        name: "query_ventas",
+        description: "Consulta datos de ventas con filtros opcionales (canal, marca, sku, sucursal, modelo).",
+        parameters: {
+          type: "object",
+          properties: {
+            filters: {
+              type: "object",
+              properties: {
+                canal: { type: "string" },
+                marca: { type: "string" },
+                sku: { type: "string" },
+                sucursal: { type: "string" },
+                modelo: { type: "string" }
+              }
+            },
+            limit: { type: "number", description: "Límite de registros a retornar (default 100)" }
+          }
+        }
+      },
+      {
+        name: "aggregate_ventas",
+        description: "Agrupa y suma datos de ventas por dimensiones (canal, marca, modelo, sucursal). Retorna cantidad, ingreso, costo y margen.",
+        parameters: {
+          type: "object",
+          properties: {
+            groupBy: {
+              type: "array",
+              items: { type: "string" },
+              description: "Dimensiones para agrupar, p.ej. ['canal', 'marca']"
+            },
+            filters: { type: "object" }
+          },
+          required: ["groupBy"]
+        }
+      },
+      {
+        name: "get_top_productos",
+        description: "Obtiene el ranking de mejores productos por un criterio (ingreso_neto, margen, cantidad).",
+        parameters: {
+          type: "object",
+          properties: {
+            orderBy: { type: "string", description: "Campo para ordenar: ingreso_neto, margen o cantidad" },
+            limit: { type: "number" },
+            filters: { type: "object" }
+          },
+          required: ["orderBy"]
+        }
+      },
+      {
+        name: "query_metas",
+        description: "Consulta metas de ventas desde Google Sheets.",
+        parameters: {
+          type: "object",
+          properties: {
+            sheet_name: { type: "string", description: "Nombre de la hoja (Metas, Forecast, Comisiones, Catalogo)" },
+            filters: { type: "object" }
+          }
+        }
+      },
+      {
+        name: "list_sheets",
+        description: "Lista todas las hojas disponibles en el archivo de Google Sheets.",
+        parameters: { type: "object", properties: {} }
+      }
+    ]
+  }
+];
+
 // Configuración de Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+const model = genAI.getGenerativeModel({
+  model: 'gemini-2.5-flash',
+  tools: tools
+});
 
 // Configuración de Supabase
 const supabase = createClient(
@@ -290,51 +366,74 @@ Formatea números con punto miles y coma decimales (formato chileno).`;
       parts: [{ text: message }]
     });
 
-    // Primera llamada a Gemini para determinar qué herramientas usar
+    // Primera llamada a Gemini
     const chat = model.startChat({
       history: [
         { role: 'user', parts: [{ text: systemPrompt }] },
-        { role: 'model', parts: [{ text: 'Entendido. Estoy listo para ayudarte con análisis de datos de ventas usando las herramientas MCP disponibles.' }] },
+        { role: 'model', parts: [{ text: 'Entendido. Estoy listo para ayudarte con análisis de datos usando las funciones disponibles.' }] },
         ...chatHistory
-      ]
+      ],
+      tools: tools, // Incluir las herramientas aquí
     });
 
-    const result = await chat.sendMessage(message);
-    let response = result.response.text();
+    let result = await chat.sendMessage(message);
+    let response = result.response;
 
-    // Detectar si Gemini necesita usar herramientas (análisis simple por MVP)
-    let toolData = null;
+    // Bucle para manejar llamadas a funciones (herramientas)
+    let callCount = 0;
+    const MAX_CALLS = 5;
+    let lastToolResults = [];
 
-    // Ejemplo: si menciona "ventas", "productos", "top", etc.
-    if (message.toLowerCase().includes('venta') ||
-      message.toLowerCase().includes('producto') ||
-      message.toLowerCase().includes('marca') ||
-      message.toLowerCase().includes('top')) {
+    while (response.candidates[0].content.parts.some(p => p.functionCall) && callCount < MAX_CALLS) {
+      callCount++;
+      const parts = response.candidates[0].content.parts;
+      const toolResults = [];
 
-      // Por ahora, hacer una consulta general de ventas
-      const data = await callSupabaseTool('query_ventas', { limit: 50 });
-      toolData = data;
+      for (const part of parts) {
+        if (part.functionCall) {
+          const { name, args } = part.functionCall;
+          console.log(`[Chat] Gemini wants to call tool: ${name}`, args);
 
-      // Enviar datos a Gemini para análisis
-      const analysisPrompt = `
-Pregunta del usuario: ${message}
+          let toolResponse;
+          if (name.startsWith('query_') || name.startsWith('aggregate_') || name.startsWith('get_top_')) {
+            // Supabase tools
+            if (name === 'query_metas') { // This is a Sheets tool, but its name starts with 'query_'
+              toolResponse = await callSheetsTool(name, args);
+            } else {
+              toolResponse = await callSupabaseTool(name, args);
+            }
+          } else if (name === 'list_sheets' || name === 'get_forecast' || name === 'get_comisiones' || name === 'get_catalogo') {
+            // Sheets tools
+            toolResponse = await callSheetsTool(name, args);
+          } else {
+            // Fallback for any other tool name, assuming it's a Supabase tool
+            console.warn(`[Chat] Unknown tool name encountered: ${name}. Attempting to call as Supabase tool.`);
+            toolResponse = await callSupabaseTool(name, args);
+          }
 
-Datos de ventas obtenidos:
-${JSON.stringify(toolData.data, null, 2)}
+          toolResults.push({
+            functionResponse: {
+              name: name,
+              response: toolResponse
+            }
+          });
+          lastToolResults.push(name);
+        }
+      }
 
-Por favor, analiza estos datos y responde la pregunta del usuario de forma clara y concisa en español.
-Usa formato de números chileno (punto para miles, coma para decimales).`;
-
-      const analysisResult = await model.generateContent(analysisPrompt);
-      response = analysisResult.response.text();
+      console.log(`[Chat] Sending tool results back to Gemini (Turn ${callCount})`);
+      result = await chat.sendMessage(toolResults);
+      response = result.response;
     }
 
-    console.log('[Chat] Gemini analysis complete, sending response');
+    const finalResponseText = response.text();
+    console.log('[Chat] Gemini analysis complete, sending final response');
+
     res.json({
       success: true,
-      response: response,
-      toolsUsed: toolData ? ['query_ventas'] : [],
-      dataPreview: toolData ? toolData.data.slice(0, 5) : null
+      response: finalResponseText,
+      toolsUsed: lastToolResults,
+      dataPreview: null
     });
 
   } catch (error) {
