@@ -490,6 +490,9 @@ function App() {
           <div className={`nav-item ${activeSection === 'chats' ? 'active' : ''}`} onClick={() => { setActiveSection('chats'); setIsSidebarOpen(false); }}>
             <span>💬</span> Chats
           </div>
+          <div className={`nav-item ${activeSection === 'guia' ? 'active' : ''}`} onClick={() => { setActiveSection('guia'); setIsSidebarOpen(false); }}>
+            <span>📖</span> Guía
+          </div>
 
           <div className="sidebar-section-title">Administración</div>
           <div className={`nav-item ${activeSection === 'users' ? 'active' : ''}`} onClick={() => { setActiveSection('users'); setIsSidebarOpen(false); }}>
@@ -1003,80 +1006,234 @@ function App() {
             </div>
           )}
 
-          {activeSection === 'users' && (
-            <div className="card settings-section">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <div>
-                  <h2>👥 Gestión de Usuarios</h2>
-                  <p style={{ fontSize: '0.9rem', color: '#666' }}>Crea y administra los accesos a la plataforma Alquimia.</p>
-                </div>
-              </div>
+          {activeSection === 'guia' && (
+            <div className="card guide-section">
+              <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+                <h1 style={{ fontSize: '2.5rem', marginBottom: '10px', color: '#0f172a' }}>📖 Guía de Alquimia</h1>
+                <p style={{ fontSize: '1.1rem', color: '#64748b', marginBottom: '40px' }}>
+                  Todo lo que necesitas saber para aprovechar al máximo tu dashboard inteligente
+                </p>
 
-              <div className="magic-creator-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '24px', borderRadius: '16px', marginBottom: '30px' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Nuevo Usuario</h3>
-                <div className="filter-grid" style={{ gap: '15px' }}>
-                  <div className="filter-control">
-                    <label>Nombre</label>
-                    <input type="text" className="glass-input" value={newUser.first_name} onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })} placeholder="Nombre" />
-                  </div>
-                  <div className="filter-control">
-                    <label>Apellido</label>
-                    <input type="text" className="glass-input" value={newUser.last_name} onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })} placeholder="Apellido" />
-                  </div>
-                  <div className="filter-control">
-                    <label>Email</label>
-                    <input type="email" className="glass-input" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} placeholder="correo@ejemplo.com" />
-                  </div>
-                  <div className="filter-control">
-                    <label>Celular</label>
-                    <input type="text" className="glass-input" value={newUser.phone} onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })} placeholder="+56 9..." />
-                  </div>
-                  <div className="filter-control">
-                    <label>Usuario</label>
-                    <input type="text" className="glass-input" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} placeholder="nombre.apellido" />
-                  </div>
-                  <div className="filter-control">
-                    <label>Contraseña</label>
-                    <input type="password" className="glass-input" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} placeholder="••••••••" />
-                  </div>
-                </div>
-                <button onClick={handleCreateUser} style={{ marginTop: '20px', width: '200px' }}>
-                  Crear Usuario
-                </button>
-              </div>
+                {/* Introducción */}
+                <section style={{ marginBottom: '50px' }}>
+                  <h2 style={{ fontSize: '1.8rem', marginBottom: '15px', color: '#1e293b' }}>🎯 ¿Qué es Alquimia?</h2>
+                  <p style={{ lineHeight: '1.8', color: '#475569', marginBottom: '15px' }}>
+                    Alquimia es un <strong>dashboard inteligente de análisis de ventas</strong> diseñado para jefes de canal y gerentes comerciales.
+                    Combina visualización de datos en tiempo real con inteligencia artificial conversacional para tomar decisiones estratégicas basadas en datos.
+                  </p>
+                </section>
 
-              <div className="table-container">
-                <table className="settings-table">
-                  <thead>
-                    <tr>
-                      <th>Nombre</th>
-                      <th>Usuario</th>
-                      <th>Contacto</th>
-                      <th>Rol</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {managedUsers.map(user => (
-                      <tr key={user.id}>
-                        <td>{user.first_name} {user.last_name}</td>
-                        <td style={{ fontWeight: '600' }}>{user.username}</td>
-                        <td style={{ fontSize: '0.8rem' }}>
-                          <div>📧 {user.email}</div>
-                          <div>📱 {user.phone}</div>
-                        </td>
-                        <td><span className="badge">{user.role}</span></td>
-                        <td>
-                          <button className="small-btn error" onClick={() => handleDeleteUser(user.id)}>🗑️</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {/* Funcionalidades */}
+                <section style={{ marginBottom: '50px' }}>
+                  <h2 style={{ fontSize: '1.8rem', marginBottom: '20px', color: '#1e293b' }}>📊 Funcionalidades Principales</h2>
+
+                  <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '1.3rem', marginBottom: '12px', color: '#0f172a' }}>1. Dashboard Visual Interactivo</h3>
+                    <p style={{ lineHeight: '1.8', color: '#475569', marginBottom: '12px' }}>
+                      Muestra métricas clave (KPIs) de ventas en tarjetas visuales y presenta gráficos de tendencias, canales y marcas.
+                      Se actualiza automáticamente cuando aplicas filtros.
+                    </p>
+                    <ul style={{ marginLeft: '20px', lineHeight: '1.8', color: '#475569' }}>
+                      <li><strong>Total Unidades:</strong> Cuántos productos se vendieron</li>
+                      <li><strong>Ingreso Bruto:</strong> Cuánto dinero entró</li>
+                      <li><strong>Costo Total:</strong> Cuánto costó vender esos productos</li>
+                      <li><strong>Margen Neto:</strong> La ganancia real</li>
+                    </ul>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '1.3rem', marginBottom: '12px', color: '#0f172a' }}>2. Sistema de Filtros Avanzado</h3>
+                    <p style={{ lineHeight: '1.8', color: '#475569', marginBottom: '12px' }}>
+                      Te permite "cortar" los datos para ver solo lo que te interesa. Los filtros son <strong>buscables</strong> - puedes escribir para encontrar rápido.
+                    </p>
+                    <ul style={{ marginLeft: '20px', lineHeight: '1.8', color: '#475569' }}>
+                      <li><strong>Rango de fechas:</strong> Analiza períodos específicos</li>
+                      <li><strong>Canal:</strong> E-commerce, tiendas, distribuidores, etc.</li>
+                      <li><strong>Marca:</strong> Apple, Samsung, Xiaomi, etc.</li>
+                      <li><strong>Sucursal:</strong> Cualquiera de tus +100 sucursales</li>
+                    </ul>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '1.3rem', marginBottom: '12px', color: '#0f172a' }}>3. Chat con Inteligencia Artificial</h3>
+                    <p style={{ lineHeight: '1.8', color: '#475569', marginBottom: '12px' }}>
+                      Respondes preguntas en lenguaje natural sobre tus ventas. El AI analiza tus datos y te da insights ejecutivos.
+                    </p>
+                    <div style={{ background: 'white', padding: '16px', borderRadius: '8px', marginTop: '12px', border: '1px solid #e2e8f0' }}>
+                      <p style={{ fontWeight: '600', marginBottom: '8px', color: '#0f172a' }}>Ejemplos de preguntas:</p>
+                      <ul style={{ marginLeft: '20px', lineHeight: '1.8', color: '#475569' }}>
+                        <li>"¿Cómo voy hoy?"</li>
+                        <li>"Qué canal vende más"</li>
+                        <li>"Productos menos vendidos en E-commerce"</li>
+                        <li>"Top 10 SKUs del mes"</li>
+                        <li>"Análisis de rentabilidad por marca"</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '1.3rem', marginBottom: '12px', color: '#0f172a' }}>4. Carga Masiva de Datos (CSV)</h3>
+                    <p style={{ lineHeight: '1.8', color: '#475569', marginBottom: '12px' }}>
+                      Importa miles de registros de ventas desde un archivo Excel/CSV. Procesa automáticamente formatos chilenos ($1.234,56)
+                      y normaliza nombres de columnas.
+                    </p>
+                    <p style={{ lineHeight: '1.8', color: '#475569' }}>
+                      <strong>Capacidad:</strong> Maneja más de 55,000 registros sin problemas, insertando datos en lotes paralelos para máxima velocidad.
+                    </p>
+                  </div>
+                </section>
+
+                {/* Casos de Uso */}
+                <section style={{ marginBottom: '50px' }}>
+                  <h2 style={{ fontSize: '1.8rem', marginBottom: '20px', color: '#1e293b' }}>💡 Casos de Uso Reales</h2>
+
+                  <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '24px', borderRadius: '12px', marginBottom: '20px', color: 'white' }}>
+                    <h3 style={{ fontSize: '1.3rem', marginBottom: '12px' }}>Caso 1: Monitoreo Diario</h3>
+                    <p style={{ lineHeight: '1.8', marginBottom: '12px', opacity: 0.95 }}>
+                      Es lunes 8:00 AM. El jefe de canal quiere saber cómo fue el fin de semana.
+                    </p>
+                    <ol style={{ marginLeft: '20px', lineHeight: '1.8', opacity: 0.95 }}>
+                      <li>Abre Alquimia y ve dashboard con totales del fin de semana</li>
+                      <li>Pregunta al AI: "¿Cómo fue el sábado vs domingo?"</li>
+                      <li>AI compara y muestra que sábado vendió 30% más</li>
+                      <li>Toma acción basada en insights</li>
+                    </ol>
+                    <p style={{ marginTop: '12px', fontWeight: '600' }}>⏱️ Tiempo total: 3 minutos</p>
+                  </div>
+
+                  <div style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', padding: '24px', borderRadius: '12px', marginBottom: '20px', color: 'white' }}>
+                    <h3 style={{ fontSize: '1.3rem', marginBottom: '12px' }}>Caso 2: Análisis de Campaña</h3>
+                    <p style={{ lineHeight: '1.8', marginBottom: '12px', opacity: 0.95 }}>
+                      Marketing lanzó campaña de iPhone. ¿Funcionó?
+                    </p>
+                    <ol style={{ marginLeft: '20px', lineHeight: '1.8', opacity: 0.95 }}>
+                      <li>Filtra: Marca=Apple, Fecha=última semana</li>
+                      <li>Ve que unidades subieron 50%</li>
+                      <li>Pregunta: "¿En qué canal se vendió más iPhone?"</li>
+                      <li>AI responde con desglose detallado</li>
+                    </ol>
+                    <p style={{ marginTop: '12px', fontWeight: '600' }}>✅ Insight: La campaña funcionó, especialmente en E-commerce</p>
+                  </div>
+                </section>
+
+                {/* Tips y Mejores Prácticas */}
+                <section style={{ marginBottom: '50px' }}>
+                  <h2 style={{ fontSize: '1.8rem', marginBottom: '20px', color: '#1e293b' }}>🚀 Tips y Mejores Prácticas</h2>
+
+                  <div style={{ background: '#fef3c7', padding: '20px', borderRadius: '12px', marginBottom: '15px', border: '2px solid #fbbf24' }}>
+                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#92400e' }}>💡 Tip: Usa filtros combinados</p>
+                    <p style={{ lineHeight: '1.8', color: '#78350f' }}>
+                      Combina múltiples filtros para análisis profundos. Ejemplo: "Ventas de iPhone en E-commerce en Santiago durante Black Friday"
+                    </p>
+                  </div>
+
+                  <div style={{ background: '#dbeafe', padding: '20px', borderRadius: '12px', marginBottom: '15px', border: '2px solid #3b82f6' }}>
+                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#1e3a8a' }}>🔍 Tip: Búsqueda inteligente</p>
+                    <p style={{ lineHeight: '1.8', color: '#1e40af' }}>
+                      Con +100 sucursales, usa la búsqueda. Escribe "Puente" y aparecerá "CAC Puente Alto" instantáneamente.
+                    </p>
+                  </div>
+
+                  <div style={{ background: '#dcfce7', padding: '20px', borderRadius: '12px', border: '2px solid #22c55e' }}>
+                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#14532d' }}>✨ Tip: Sé específico con el AI</p>
+                    <p style={{ lineHeight: '1.8', color: '#15803d' }}>
+                      En lugar de "productos menos vendidos", prueba "productos de E-commerce del 6 de enero ordenados por cantidad ascendente"
+                    </p>
+                  </div>
+                </section>
+
+                {/* Soporte */}
+                <section style={{ background: '#f1f5f9', padding: '30px', borderRadius: '12px', textAlign: 'center' }}>
+                  <h2 style={{ fontSize: '1.5rem', marginBottom: '15px', color: '#0f172a' }}>¿Necesitas ayuda?</h2>
+                  <p style={{ lineHeight: '1.8', color: '#475569', marginBottom: '20px' }}>
+                    Esta guía se actualiza automáticamente con cada nueva funcionalidad. Si tienes preguntas específicas,
+                    prueba preguntarle al AI en la sección de Chat.
+                  </p>
+                  <div style={{ display: 'inline-block', background: '#667eea', color: 'white', padding: '12px 24px', borderRadius: '8px', fontWeight: '600' }}>
+                    💬 Ir a Chat
+                  </div>
+                </section>
               </div>
             </div>
-          )}
-        </div>
+          )
+          }
+
+          {
+            activeSection === 'users' && (
+              <div className="card settings-section">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                  <div>
+                    <h2>👥 Gestión de Usuarios</h2>
+                    <p style={{ fontSize: '0.9rem', color: '#666' }}>Crea y administra los accesos a la plataforma Alquimia.</p>
+                  </div>
+                </div>
+
+                <div className="magic-creator-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '24px', borderRadius: '16px', marginBottom: '30px' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Nuevo Usuario</h3>
+                  <div className="filter-grid" style={{ gap: '15px' }}>
+                    <div className="filter-control">
+                      <label>Nombre</label>
+                      <input type="text" className="glass-input" value={newUser.first_name} onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })} placeholder="Nombre" />
+                    </div>
+                    <div className="filter-control">
+                      <label>Apellido</label>
+                      <input type="text" className="glass-input" value={newUser.last_name} onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })} placeholder="Apellido" />
+                    </div>
+                    <div className="filter-control">
+                      <label>Email</label>
+                      <input type="email" className="glass-input" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} placeholder="correo@ejemplo.com" />
+                    </div>
+                    <div className="filter-control">
+                      <label>Celular</label>
+                      <input type="text" className="glass-input" value={newUser.phone} onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })} placeholder="+56 9..." />
+                    </div>
+                    <div className="filter-control">
+                      <label>Usuario</label>
+                      <input type="text" className="glass-input" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} placeholder="nombre.apellido" />
+                    </div>
+                    <div className="filter-control">
+                      <label>Contraseña</label>
+                      <input type="password" className="glass-input" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} placeholder="••••••••" />
+                    </div>
+                  </div>
+                  <button onClick={handleCreateUser} style={{ marginTop: '20px', width: '200px' }}>
+                    Crear Usuario
+                  </button>
+                </div>
+
+                <div className="table-container">
+                  <table className="settings-table">
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>Usuario</th>
+                        <th>Contacto</th>
+                        <th>Rol</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {managedUsers.map(user => (
+                        <tr key={user.id}>
+                          <td>{user.first_name} {user.last_name}</td>
+                          <td style={{ fontWeight: '600' }}>{user.username}</td>
+                          <td style={{ fontSize: '0.8rem' }}>
+                            <div>📧 {user.email}</div>
+                            <div>📱 {user.phone}</div>
+                          </td>
+                          <td><span className="badge">{user.role}</span></td>
+                          <td>
+                            <button className="small-btn error" onClick={() => handleDeleteUser(user.id)}>🗑️</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
+          }
+        </div >
       </main >
     </div >
   )
