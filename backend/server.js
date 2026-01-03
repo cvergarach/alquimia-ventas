@@ -199,6 +199,32 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // ============= FUNCIONES MCP ============= 
 
+// Helper para obtener TODOS los datos paginando (bypass límite de 1000 de Supabase)
+async function fetchFullData(query, maxRecords = 60000) {
+  let allData = [];
+  let from = 0;
+  const step = 1000;
+  let done = false;
+
+  while (!done && allData.length < maxRecords) {
+    const { data, error } = await query.range(from, from + step - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      done = true;
+    } else {
+      allData = allData.concat(data);
+      console.log(`[FullData] Fetched chunk: ${from}-${from + data.length - 1} | Total so far: ${allData.length}`);
+      if (data.length < step) {
+        done = true;
+      } else {
+        from += step;
+      }
+    }
+  }
+  console.log(`[FullData] Finished fetching. Total records: ${allData.length}`);
+  return allData;
+}
+
 // Función para ejecutar herramientas MCP de Supabase
 async function callSupabaseTool(toolName, args) {
   console.log(`[MCP Supabase] Calling tool: ${toolName}`, args);
@@ -223,8 +249,7 @@ async function callSupabaseTool(toolName, args) {
           });
         }
 
-        const { data, error } = await query.limit(60000);
-        if (error) throw error;
+        const data = await fetchFullData(query, 60000);
 
         const summary = data.reduce((acc, row) => ({
           total_registros: acc.total_registros + 1,
@@ -285,8 +310,7 @@ async function callSupabaseTool(toolName, args) {
           });
         }
 
-        const { data, error } = await query.limit(60000);
-        if (error) throw error;
+        const data = await fetchFullData(query, 60000);
 
         // Agrupar en memoria
         const grouped = {};
@@ -335,8 +359,7 @@ async function callSupabaseTool(toolName, args) {
           });
         }
 
-        const { data, error } = await query.limit(60000);
-        if (error) throw error;
+        const data = await fetchFullData(query, 60000);
 
         const sorted = data.sort((a, b) => {
           const valA = parseFloat(a[args.orderBy] || 0);
@@ -764,12 +787,8 @@ app.get('/api/analytics/charts', async (req, res) => {
     console.log('[API] GET /api/analytics/charts');
 
     // Obtenemos todos los datos necesarios para agrupar (solo campos clave para ahorrar ancho de banda internos)
-    const { data, error } = await supabase
-      .from('ventas')
-      .select('dia, canal, marca, cantidad')
-      .limit(60000); // Aumentado para cubrir los 55,000+ registros del usuario
-
-    if (error) throw error;
+    const query = supabase.from('ventas').select('dia, canal, marca, cantidad');
+    const data = await fetchFullData(query, 60000); // Bypass 1000 limit
 
     // 1. Tendencia Temporal
     const trend = {};
@@ -839,29 +858,34 @@ app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
 
     stream
       .pipe(csvParser({
-        separator: ';', // Ajustar según tu CSV
-        mapHeaders: ({ header }) => header.trim()
+        separator: ';',
+        mapHeaders: ({ header }) => {
+          const h = header.trim().toLowerCase()
+            .replace(/\s+/g, '_')
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Quitar acentos
+          return h;
+        }
       }))
       .on('data', (data) => {
-        // Convertir formato chileno a float
         const parseChileanNumber = (str) => {
-          if (!str) return 0;
+          if (!str || typeof str !== 'string') return typeof str === 'number' ? str : 0;
           return parseFloat(str.replace(/\./g, '').replace(',', '.'));
         };
 
+        // Mapeo flexible para nombres de columnas
         const record = {
-          dia: data.DIA,
-          canal: data.CANAL,
-          sku: data.SKU,
-          cantidad: parseInt(data.Cantidad) || 0,
-          adquisicion: data.ADQUISICIÓN,
-          marca: data.MARCA,
-          modelo: data.MODELO,
-          origen: data.ORIGEN,
-          sucursal: data.SUCURSAL,
-          ingreso_neto: parseChileanNumber(data.Ingreso_Neto),
-          costo_neto: parseChileanNumber(data.Costo_Neto),
-          margen: parseChileanNumber(data.Margen)
+          dia: data.dia || data.fecha || data.date,
+          canal: data.canal || data.channel,
+          sku: data.sku,
+          cantidad: parseInt(data.cantidad || data.unidades || data.units) || 0,
+          adquisicion: data.adquisicion || data.tipo,
+          marca: data.marca || data.brand,
+          modelo: data.modelo || data.model,
+          origen: data.origen,
+          sucursal: data.sucursal || data.store,
+          ingreso_neto: parseChileanNumber(data.ingreso_neto || data.ingresos || data.revenue || data.total),
+          costo_neto: parseChileanNumber(data.costo_neto || data.costo || data.costs),
+          margen: parseChileanNumber(data.margen || data.margin || data.profit)
         };
 
         results.push(record);
