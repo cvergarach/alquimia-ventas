@@ -25,7 +25,7 @@ function App() {
   const [modelConfig, setModelConfig] = useState({ provider: 'gemini', modelId: 'gemini-2.5-flash' })
   const [kpis, setKpis] = useState({ total_unidades: 0, total_ingreso: 0, total_margen: 0, margenPct: 0 })
   const [chartsData, setChartsData] = useState({ trend: [], channels: [], brands: [] })
-  const [activeSection, setActiveSection] = useState('dashboard') // dashboard, chats, data, projects
+  const [activeSection, setActiveSection] = useState('dashboard') // dashboard, chats, data
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const messagesEndRef = useRef(null)
 
@@ -223,9 +223,6 @@ function App() {
         <nav className="sidebar-nav">
           <div className={`nav-item ${activeSection === 'dashboard' ? 'active' : ''}`} onClick={() => { setActiveSection('dashboard'); setIsSidebarOpen(false); }}>
             <span>📊</span> Dashboard
-          </div>
-          <div className={`nav-item ${activeSection === 'projects' ? 'active' : ''}`} onClick={() => { setActiveSection('projects'); setIsSidebarOpen(false); }}>
-            <span>📁</span> Proyectos
           </div>
           <div className={`nav-item ${activeSection === 'data' ? 'active' : ''}`} onClick={() => { setActiveSection('data'); setIsSidebarOpen(false); }}>
             <span>💾</span> Datos
