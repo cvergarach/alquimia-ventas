@@ -466,22 +466,46 @@ async function callSupabaseTool(toolName, args) {
 
         // Reemplazar placeholders en el SQL template
         let sql = tool.sql_template;
-        const filters = args.filters || {};
 
-        // Reemplazo básico de {{field}} por el valor formateado para SQL
-        Object.entries(filters).forEach(([key, value]) => {
-          const formattedValue = typeof value === 'string' ? `'${value}'` : value;
+        // Unimos args de primer nivel y filtros para que la IA tenga flexibilidad
+        const allArgs = { ...args, ...(args.filters || {}) };
+        delete allArgs.filters;
+
+        // Reemplazo inteligente de {{field}}
+        Object.entries(allArgs).forEach(([key, value]) => {
+          if (value === undefined || value === null) return;
+
+          // Escapar comillas simples para evitar inyección básica
+          const escapedValue = typeof value === 'string' ? value.replace(/'/g, "''") : value;
+
+          // Caso 1: El placeholder está dentro de comillas '{{campo}}' o "{{campo}}"
+          // Reemplazamos quitando nuestras propias comillas del formateo
+          sql = sql.replace(new RegExp(`['"]{{${key}}}['"]`, 'g'), `'${escapedValue}'`);
+
+          // Caso 2: El placeholder está solo {{campo}}
+          // Formateamos según el tipo
+          const formattedValue = typeof value === 'number' ? value : `'${escapedValue}'`;
           sql = sql.replace(new RegExp(`{{${key}}}`, 'g'), formattedValue);
         });
 
-        // Limpiar placeholders no usados (poner NULL o similar)
+        // Limpiar placeholders no usados (poner NULL para que la consulta no falle)
         sql = sql.replace(/{{[a-zA-Z0-9_]+}}/g, 'NULL');
 
         console.log(`[Dynamic Tool] Executing SQL: ${sql}`);
 
         const { data: result, error: execErr } = await supabase.rpc('execute_ai_query', { sql_query: sql });
 
-        if (execErr) throw execErr;
+        if (execErr) {
+          console.error('[Dynamic Tool] RPC Error:', execErr);
+          throw execErr;
+        }
+
+        // Si la función de Supabase devolvió un objeto de error (capturado por el EXCEPTION block)
+        if (result && !Array.isArray(result) && result.error) {
+          console.error('[Dynamic Tool] SQL Logic Error:', result.error);
+          return { success: false, error: `Error en la consulta SQL: ${result.error}` };
+        }
+
         return { success: true, data: result };
       }
     }
