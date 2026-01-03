@@ -119,6 +119,8 @@ function App() {
   const [newUser, setNewUser] = useState({
     username: '', password: '', email: '', first_name: '', last_name: '', phone: ''
   })
+  const [whatsappConnected, setWhatsappConnected] = useState(false)
+  const [whatsappQR, setWhatsappQR] = useState(null)
   const messagesEndRef = useRef(null)
 
   // ... (availableModels setup)
@@ -138,6 +140,57 @@ function App() {
       fetchManagedUsers()
     }
   }, [activeSection])
+
+  useEffect(() => {
+    let interval;
+    if (activeSection === 'integraciones' && isLoggedIn) {
+      const checkStatus = async () => {
+        try {
+          const response = await axios.get(`${API_URL}/api/whatsapp/status`);
+          setWhatsappConnected(response.data.connected);
+          setWhatsappQR(response.data.qr);
+        } catch (error) {
+          console.error('Error checking WhatsApp status:', error);
+        }
+      };
+
+      checkStatus();
+      interval = setInterval(checkStatus, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [activeSection, isLoggedIn]);
+
+  const handleConnectWhatsApp = async () => {
+    try {
+      await axios.post(`${API_URL}/api/whatsapp/connect`);
+      alert('Iniciando conexión. Por favor espera a que aparezca el código QR.');
+    } catch (error) {
+      console.error('Error connecting WhatsApp:', error);
+      alert('Error al iniciar conexión con WhatsApp');
+    }
+  };
+
+  const handleDisconnectWhatsApp = async () => {
+    if (window.confirm('¿Estás seguro de que deseas desconectar WhatsApp?')) {
+      try {
+        await axios.post(`${API_URL}/api/whatsapp/disconnect`);
+        setWhatsappConnected(false);
+        setWhatsappQR(null);
+      } catch (error) {
+        console.error('Error disconnecting WhatsApp:', error);
+      }
+    }
+  };
+
+  const handleRestartWhatsApp = async () => {
+    try {
+      await axios.post(`${API_URL}/api/whatsapp/restart`);
+      alert('Reiniciando conexión...');
+    } catch (error) {
+      console.error('Error restarting WhatsApp:', error);
+    }
+  };
+
 
   const handleLoginSuccess = (userData) => {
     setCurrentUser(userData)
@@ -499,6 +552,9 @@ function App() {
           </div>
           <div className={`nav-item ${activeSection === 'guia' ? 'active' : ''}`} onClick={() => { setActiveSection('guia'); setIsSidebarOpen(false); }}>
             <span className="nav-icon">■</span> Guía
+          </div>
+          <div className={`nav-item ${activeSection === 'integraciones' ? 'active' : ''}`} onClick={() => { setActiveSection('integraciones'); setIsSidebarOpen(false); }}>
+            <span className="nav-icon">■</span> Integraciones
           </div>
 
           <div className="sidebar-section-title">Administración</div>
@@ -1167,6 +1223,117 @@ function App() {
             </div>
           )
           }
+
+          {activeSection === 'integraciones' && (
+            <div className="card settings-section">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <div>
+                  <h2>📱 Integraciones</h2>
+                  <p style={{ fontSize: '0.9rem', color: '#666' }}>Conecta Alquimia con otras plataformas para potenciar tu productividad.</p>
+                </div>
+              </div>
+
+              <div className="whatsapp-card" style={{
+                background: 'white',
+                border: '1px solid #e2e8f0',
+                padding: '30px',
+                borderRadius: '20px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '30px' }}>
+                  <div style={{
+                    width: '60px',
+                    height: '60px',
+                    background: '#25D366',
+                    borderRadius: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '2rem',
+                    color: 'white'
+                  }}>
+                    W
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '1.4rem', marginBottom: '5px' }}>WhatsApp AI Assistant</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className={`status-dot ${whatsappConnected ? 'online' : 'offline'}`} style={{
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        background: whatsappConnected ? '#10B981' : '#EF4444'
+                      }}></span>
+                      <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: '500' }}>
+                        {whatsappConnected ? 'Conectado y Operativo' : 'Desconectado'}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    {!whatsappConnected ? (
+                      <button className="primary" onClick={handleConnectWhatsApp}>
+                        Conectar WhatsApp
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button className="secondary" onClick={handleRestartWhatsApp}>Reiniciar</button>
+                        <button className="error-btn" onClick={handleDisconnectWhatsApp} style={{
+                          background: '#FEE2E2',
+                          color: '#DC2626',
+                          border: 'none',
+                          padding: '10px 20px',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}>Desconectar</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {!whatsappConnected && whatsappQR && (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '30px',
+                    background: '#f8fafc',
+                    borderRadius: '15px',
+                    border: '2px dashed #cbd5e1',
+                    marginBottom: '30px'
+                  }}>
+                    <h4 style={{ marginBottom: '20px', color: '#0f172a' }}>Escanea este código para vincular tu cuenta</h4>
+                    <div style={{ background: 'white', padding: '20px', display: 'inline-block', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+                      <img src={whatsappQR} alt="WhatsApp QR Code" style={{ width: '250px', height: '250px' }} />
+                    </div>
+                    <div style={{ marginTop: '20px', color: '#64748b', fontSize: '0.95rem' }}>
+                      <p>1. Abre WhatsApp en tu teléfono</p>
+                      <p>2. Ve a Menú o Configuración → Dispositivos vinculados</p>
+                      <p>3. Toca en "Vincular un dispositivo" y apunta a la pantalla</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginTop: '30px' }}>
+                  <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
+                    <h4 style={{ marginBottom: '10px', fontSize: '1rem', color: '#1e293b' }}>📊 Consulta tus Ventas</h4>
+                    <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: '1.5' }}>
+                      Pregunta "¿Cuánto vendimos ayer?" o "¿Cómo va el canal retail?" directamente por WhatsApp.
+                    </p>
+                  </div>
+                  <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
+                    <h4 style={{ marginBottom: '10px', fontSize: '1rem', color: '#1e293b' }}>🤖 Inteligencia 24/7</h4>
+                    <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: '1.5' }}>
+                      Mismo cerebro AI que el dashboard. Respuestas ejecutivas y precisas en segundos.
+                    </p>
+                  </div>
+                  <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
+                    <h4 style={{ marginBottom: '10px', fontSize: '1rem', color: '#1e293b' }}>🔒 Privacidad Total</h4>
+                    <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: '1.5' }}>
+                      Conexión segura y cifrada punto a punto usando la API oficial de WhatsApp Web.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {
             activeSection === 'users' && (

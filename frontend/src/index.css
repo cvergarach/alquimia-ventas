@@ -1409,3 +1409,62 @@ button.secondary {
 .select-options::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* WhatsApp Integration Styles */
+.whatsapp-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.whatsapp-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08) !important;
+}
+
+.status-dot {
+  display: inline-block;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.status-dot.online {
+  background: #10B981;
+  color: rgba(16, 185, 129, 0.4);
+  animation: pulse-green 2s infinite;
+}
+
+.status-dot.offline {
+  background: #EF4444;
+}
+
+@keyframes pulse-green {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.whatsapp-card button {
+  transition: all 0.2s;
+}
+
+.whatsapp-card button:hover {
+  filter: brightness(1.1);
+  transform: scale(1.02);
+}
+
+.whatsapp-card button:active {
+  transform: scale(0.98);
+}
+
+.qr-container img {
+  image-rendering: pixelated;
+}

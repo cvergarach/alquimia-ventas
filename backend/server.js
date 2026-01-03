@@ -9,6 +9,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { spawn } from 'child_process';
 import { google } from 'googleapis';
+import * as whatsapp from './whatsapp.js';
 
 dotenv.config();
 
@@ -1307,6 +1308,129 @@ app.delete('/api/users/:id', async (req, res) => {
 
     if (error) throw error;
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============ WHATSAPP INTEGRATION ============
+
+// Handler para procesar mensajes de WhatsApp
+async function processWhatsAppMessage(message) {
+  try {
+    console.log(`[WhatsApp] Processing message: "${message}"`);
+
+    // Usar la misma lógica del chat con Gemini
+    const currentTools = await getDynamicTools();
+    const today = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
+
+    const systemPrompt = `Eres un ANALISTA DE DATOS SENIOR actuando como asistente para el JEFE DE CANAL de Alquimia Datalive.
+Tu objetivo es ayudar al Jefe de Canal a tomar decisiones estratégicas basadas en datos reales.
+
+FECHA ACTUAL (Chile): ${today}
+
+FORMATO DE RESPUESTA (CRÍTICO para WhatsApp):
+1. ESTRUCTURA: Usa títulos en negrita (ej: *RESUMEN DE VENTAS*) para separar secciones.
+2. LISTAS: Usa viñetas claras (• o -) para métricas individuales.
+3. NEGRILLAS: Usa asteriscos para resaltar cifras (ej: *81 unidades*).
+4. ESPACIADO: Deja un salto de línea entre bloques.
+5. EJECUTIVO: Sé conciso y directo.
+
+Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.234,50).`;
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-exp',
+      tools: currentTools,
+      systemInstruction: systemPrompt
+    });
+
+    const chat = model.startChat({ history: [] });
+    const result = await chat.sendMessage(message);
+    let response = result.response;
+
+    // Procesar tool calls si existen
+    let callCount = 0;
+    const MAX_CALLS = 5;
+
+    while (response.functionCalls() && callCount < MAX_CALLS) {
+      callCount++;
+      const functionCalls = response.functionCalls();
+      const functionResponses = [];
+
+      for (const call of functionCalls) {
+        console.log(`[WhatsApp] Tool call: ${call.name}`);
+        let toolResult;
+
+        if (call.name.startsWith('query_') || call.name.startsWith('aggregate_') || call.name.startsWith('get_top_')) {
+          if (call.name === 'query_metas') {
+            toolResult = await callSheetsTool(call.name, call.args);
+          } else {
+            toolResult = await callSupabaseTool(call.name, call.args);
+          }
+        } else if (['list_sheets', 'get_forecast', 'get_comisiones', 'get_catalogo'].includes(call.name)) {
+          toolResult = await callSheetsTool(call.name, call.args);
+        } else {
+          toolResult = await callSupabaseTool(call.name, call.args);
+        }
+
+        const processedResult = truncateToolResult(toolResult);
+        functionResponses.push({
+          functionResponse: {
+            name: call.name,
+            response: processedResult
+          }
+        });
+      }
+
+      const nextResult = await chat.sendMessage(functionResponses);
+      response = nextResult.response;
+    }
+
+    const finalText = response.text();
+    console.log(`[WhatsApp] Response generated: "${finalText.substring(0, 100)}..."`);
+    return finalText;
+
+  } catch (error) {
+    console.error('[WhatsApp] Error processing message:', error);
+    return 'Lo siento, hubo un error al procesar tu mensaje. Por favor intenta de nuevo.';
+  }
+}
+
+// Endpoint: Obtener estado de WhatsApp
+app.get('/api/whatsapp/status', (req, res) => {
+  try {
+    const status = whatsapp.getStatus();
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint: Conectar WhatsApp
+app.post('/api/whatsapp/connect', async (req, res) => {
+  try {
+    await whatsapp.connectWhatsApp(processWhatsAppMessage);
+    res.json({ success: true, message: 'Conexión iniciada. Escanea el QR code.' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint: Desconectar WhatsApp
+app.post('/api/whatsapp/disconnect', (req, res) => {
+  try {
+    whatsapp.disconnect();
+    res.json({ success: true, message: 'WhatsApp desconectado' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint: Reiniciar conexión WhatsApp
+app.post('/api/whatsapp/restart', async (req, res) => {
+  try {
+    await whatsapp.restart(processWhatsAppMessage);
+    res.json({ success: true, message: 'Conexión reiniciada' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
