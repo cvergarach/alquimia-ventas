@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, LineChart, Line
+} from 'recharts'
 import './index.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -16,6 +20,7 @@ function App() {
   const [uploadStatus, setUploadStatus] = useState(null)
   const [activeSheet, setActiveSheet] = useState('Metas')
   const [modelConfig, setModelConfig] = useState({ provider: 'gemini', modelId: 'gemini-2.5-flash' })
+  const messagesEndRef = useRef(null)
 
   const availableModels = [
     { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini' },
@@ -26,6 +31,14 @@ function App() {
     { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', provider: 'claude' },
     { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', provider: 'claude' },
   ]
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [chatMessages, loading])
 
   // Cargar ventas de Supabase al inicio
   useEffect(() => {
@@ -103,6 +116,12 @@ function App() {
     }
   }
 
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Respuesta copiada al portapapeles. ¡Lista para WhatsApp!')
+    })
+  }
+
   const handleFileUpload = async (event) => {
     const file = event.target.files[0]
     if (!file) return
@@ -145,10 +164,48 @@ function App() {
   const formatNumber = (num) => {
     if (!num && num !== 0) return '-'
     return parseFloat(num).toLocaleString('es-CL', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     })
   }
+
+  // Procesar datos para gráficos
+  const getSalesByChannel = () => {
+    const channels = {}
+    ventas.forEach(v => {
+      channels[v.canal] = (channels[v.canal] || 0) + (v.cantidad || 0)
+    })
+    return Object.keys(channels).map(name => ({ name, value: channels[name] }))
+  }
+
+  const getSalesByBrand = () => {
+    const brands = {}
+    ventas.forEach(v => {
+      brands[v.marca] = (brands[v.marca] || 0) + (v.cantidad || 0)
+    })
+    return Object.keys(brands).map(name => ({ name, value: brands[name] }))
+  }
+
+  const getKPIs = () => {
+    const totalVentas = ventas.reduce((acc, v) => acc + (v.cantidad || 0), 0)
+    const totalIngreso = ventas.reduce((acc, v) => acc + parseFloat(v.ingreso_neto || 0), 0)
+    const totalMargen = ventas.reduce((acc, v) => acc + parseFloat(v.margen || 0), 0)
+    const margenPct = totalIngreso > 0 ? (totalMargen / totalIngreso) * 100 : 0
+
+    return { totalVentas, totalIngreso, totalMargen, margenPct }
+  }
+
+  const getSalesTrend = () => {
+    const trend = {}
+    ventas.forEach(v => {
+      trend[v.dia] = (trend[v.dia] || 0) + (v.cantidad || 0)
+    })
+    return Object.keys(trend)
+      .sort()
+      .map(date => ({ date, value: trend[date] }))
+  }
+
+  const COLORS = ['#667eea', '#764ba2', '#4c51bf', '#6b46c1', '#5a67d8', '#805ad5'];
 
   return (
     <div className="container">
@@ -156,15 +213,97 @@ function App() {
       <div className="header">
         <h1>🚀 Alquimia Datalive - MVP</h1>
         <p>Conversaciones inteligentes con tus datos usando IA + MCP</p>
-        <div style={{ marginTop: '10px' }}>
-          <span className="stat">
-            <strong>{ventas.length}</strong> ventas en Supabase
-          </span>
-          <span className="stat">
-            <strong>{sheetsData.length}</strong> registros en Google Sheets
-          </span>
-        </div>
       </div>
+
+      {/* KPI Dashboard */}
+      {ventas.length > 0 && (
+        <div className="dashboard-summary">
+          <div className="kpi-card">
+            <h3>Total Ventas</h3>
+            <p className="kpi-value">{getKPIs().totalVentas}</p>
+            <span className="kpi-label">unidades</span>
+          </div>
+          <div className="kpi-card">
+            <h3>Ingreso Total</h3>
+            <p className="kpi-value">${formatNumber(getKPIs().totalIngreso)}</p>
+            <span className="kpi-label">CLP</span>
+          </div>
+          <div className="kpi-card">
+            <h3>Margen Total</h3>
+            <p className="kpi-value" style={{ color: getKPIs().totalMargen >= 0 ? '#48bb78' : '#f56565' }}>
+              ${formatNumber(getKPIs().totalMargen)}
+            </p>
+            <span className="kpi-label">CLP</span>
+          </div>
+          <div className="kpi-card">
+            <h3>% Margen</h3>
+            <p className="kpi-value">{getKPIs().margenPct.toFixed(1)}%</p>
+            <span className="kpi-label">Promedio</span>
+          </div>
+        </div>
+      )}
+
+      {/* Temporal Trend */}
+      {ventas.length > 0 && (
+        <div className="card" style={{ marginBottom: '30px' }}>
+          <h2>📈 Tendencia de Ventas Diarias</h2>
+          <div style={{ width: '100%', height: 300 }}>
+            <ResponsiveContainer>
+              <LineChart data={getSalesTrend()}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" fontSize={10} />
+                <YAxis fontSize={12} />
+                <Tooltip />
+                <Line type="monotone" dataKey="value" stroke="#667eea" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Visual Analytics */}
+      {ventas.length > 0 && (
+        <div className="grid">
+          <div className="card">
+            <h2>📊 Ventas por Canal</h2>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <BarChart data={getSalesByChannel()}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" fontSize={12} />
+                  <YAxis fontSize={12} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#667eea" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="card">
+            <h2>🏷️ Distribución por Marca</h2>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={getSalesByBrand()}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {getSalesByBrand().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upload CSV */}
       <div className="card">
@@ -330,6 +469,15 @@ function App() {
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {msg.content}
                     </ReactMarkdown>
+                    {msg.role === 'assistant' && (
+                      <button
+                        className="copy-button"
+                        onClick={() => copyToClipboard(msg.content)}
+                        title="Copiar para WhatsApp"
+                      >
+                        📋 Copiar
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -339,6 +487,7 @@ function App() {
                 <div className="loading">⏳ Pensando y consultando datos...</div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           <div className="chat-input">

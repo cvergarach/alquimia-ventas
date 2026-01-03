@@ -209,7 +209,7 @@ async function callSupabaseTool(toolName, args) {
           });
         }
 
-        query = query.limit(args.limit || 1000); // Aumentado a 1000 por defecto
+        query = query.limit(args.limit || 100); // Reducido de 1000 a 100 para evitar saturar el contexto de la IA
         const { data, error } = await query;
 
         if (error) throw error;
@@ -444,6 +444,21 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Alquimia Backend running' });
 });
 
+// Helper para truncar resultados de herramientas y evitar RateLimit / Token Bloat
+function truncateToolResult(result, maxRecords = 20) {
+  if (result.success && Array.isArray(result.data) && result.data.length > maxRecords) {
+    const totalCount = result.data.length;
+    return {
+      ...result,
+      data: result.data.slice(0, maxRecords),
+      truncated: true,
+      originalCount: totalCount,
+      message: `Mostrando solo los primeros ${maxRecords} registros de ${totalCount}. Por favor, pide filtros más específicos o usa agregación para ver el total.`
+    };
+  }
+  return result;
+}
+
 // Endpoint principal para chat con IA
 app.post('/api/chat', async (req, res) => {
   console.log('[API] POST /api/chat - Request received');
@@ -462,7 +477,11 @@ FORMATO DE RESPUESTA (CRÍTICO para WhatsApp/Escritorio):
 2. LISTAS: Usa viñetas claras (• o -) para métricas individuales. No escribas párrafos largos.
 3. NEGRILLAS: Usa asteriscos para resaltar cifras y nombres de canales/marcas (ej: *81 unidades*).
 4. ESPACIADO: Deja un doble salto de línea entre cada bloque principal de información.
-5. EJECUTIVO: Ve al grano. Menos texto, más estructura.
+5. EFICIENCIA (IMPORTANTE): Las herramientas de AGREGACIÓN (\`aggregate_ventas\`) procesan el 100% de los datos en la base de datos y te dan el total exacto. Úsalas SIEMPRE para resúmenes de ventas, metas o comparativas globales.
+6. DETALLE: Usa \`query_ventas\` (filas individuales) solo cuando el usuario pida ver ejemplos específicos de transacciones. Los resultados de esta herramienta se truncan por seguridad, pero los de AGREGACIÓN no.
+7. AVISO: Si ves que un resultado de \`query_ventas\` viene marcado como \`truncated: true\`, explícale al usuario que estás viendo una muestra, pero que los totales (si usaste agregación) son exactos sobre el universo completo.
+8. VISUAL: Menciona al usuario que ahora puede ver gráficos de canales, marcas y tendencias en el DASHBOARD VISUAL en la parte superior de la página para complementar tu análisis de texto.
+9. EJECUTIVO: Ve al grano. Menos texto, más estructura.
 
 DIRECTRICES DE ANÁLISIS:
 1. PERSONA: Responde de forma ejecutiva, proactiva y orientada a resultados. No solo des números, da INSIGHTS.
@@ -471,6 +490,7 @@ DIRECTRICES DE ANÁLISIS:
    - Las metas o el forecast (usa las herramientas de Sheets).
 3. IDENTIFICACIÓN DE GAPS: Indica claramente dónde el canal/modelo está "caído" (bajo objetivo o tendencia) y dónde está "mejor" (sobre objetivo).
 4. MULTI-PASO: No dudes en llamar a varias herramientas en secuencia para dar una respuesta completa.
+5. LIMITACIÓN DE DATOS: Solo pide filas individuales si es estrictamente necesario para un análisis de detalle. Prefiere 'aggregate_ventas' para totales.
 
 DATOS DISPONIBLES:
 1. SUPABASE (Ventas): DIA, CANAL, SKU, Cantidad, Ingreso, Costo, Margen.
@@ -528,10 +548,13 @@ Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.2
               toolResult = await callSupabaseTool(name, input);
             }
 
+            // Aplicar truncado antes de enviar a Claude
+            const processedResult = truncateToolResult(toolResult);
+
             toolResults.push({
               type: 'tool_result',
               tool_use_id: id,
-              content: JSON.stringify(toolResult)
+              content: JSON.stringify(processedResult)
             });
           }
         }
@@ -606,10 +629,13 @@ Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.2
               toolResponse = await callSupabaseTool(name, args);
             }
 
+            // Aplicar truncado antes de enviar a Gemini
+            const processedResponse = truncateToolResult(toolResponse);
+
             toolResults.push({
               functionResponse: {
                 name: name,
-                response: toolResponse
+                response: processedResponse
               }
             });
             lastToolResults.push(name);
