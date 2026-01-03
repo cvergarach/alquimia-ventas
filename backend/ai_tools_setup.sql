@@ -16,10 +16,12 @@ CREATE TABLE IF NOT EXISTS ai_tools (
 ALTER TABLE ai_tools ENABLE ROW LEVEL SECURITY;
 
 -- Política para permitir lectura a todos
+DROP POLICY IF EXISTS "Enable read access for all" ON ai_tools;
 CREATE POLICY "Enable read access for all" ON ai_tools
   FOR SELECT USING (true);
 
 -- Política para permitir gestión total (esto debería estar restringido en prod)
+DROP POLICY IF EXISTS "Enable all for admin" ON ai_tools;
 CREATE POLICY "Enable all for admin" ON ai_tools
   FOR ALL USING (true);
 
