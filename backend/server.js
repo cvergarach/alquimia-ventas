@@ -1167,7 +1167,7 @@ Base de datos: Tabla 'ventas' con columnas: [id, dia, canal, sku, cantidad, adqu
 REQUERIMIENTO DEL USUARIO: "${prompt}"
 
 Tu tarea es devolver un objeto JSON con la definición técnica completa. 
-Para el SQL, usa placeholders como {{dia}}, {{canal}}, {{marca}}, {{sucursal}} para insertar filtros dinámicos.
+Para el SQL, usa SIEMPRE este patrón de filtros flexibles: WHERE ({{campo}} IS NULL OR campo = {{campo}}).
 
 Formato de respuesta (DEBE SER JSON PURO):
 {
@@ -1182,7 +1182,7 @@ Formato de respuesta (DEBE SER JSON PURO):
       }
     }
   },
-  "sql_template": "SELECT ... FROM ventas WHERE ...",
+  "sql_template": "SELECT ... FROM ventas WHERE ({{canal}} IS NULL OR canal = {{canal}}) AND ... GROUP BY ... ORDER BY ... LIMIT 50",
   "provider": "supabase"
 }`;
 
