@@ -37,7 +37,7 @@ function SearchableSelect({ label, value, onChange, options, placeholder }) {
   return (
     <div className="searchable-select" ref={dropdownRef}>
       <label>{label}</label>
-      <div className="select-trigger" onClick={() => setIsOpen(!isOpen)}>
+      <div className="select-trigger" onClick={() => setIsOpen(!isOpen)} title={value || placeholder}>
         <span className={value ? '' : 'placeholder'}>{displayValue}</span>
         <span className="arrow">{isOpen ? '▲' : '▼'}</span>
       </div>
@@ -50,6 +50,7 @@ function SearchableSelect({ label, value, onChange, options, placeholder }) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onClick={(e) => e.stopPropagation()}
+            autoFocus
           />
           <div className="select-options">
             <div
@@ -66,6 +67,7 @@ function SearchableSelect({ label, value, onChange, options, placeholder }) {
               <div
                 key={idx}
                 className="select-option"
+                title={opt}
                 onClick={() => {
                   onChange(opt)
                   setIsOpen(false)

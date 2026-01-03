@@ -1263,8 +1263,9 @@ button.secondary {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-width: 200px;
+  min-width: 220px;
   position: relative;
+  flex: 1;
 }
 
 .searchable-select label {
@@ -1288,6 +1289,10 @@ button.secondary {
   font-size: 0.9rem;
   font-weight: 500;
   color: #1e293b;
+  min-height: 44px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .select-trigger:hover {
@@ -1310,11 +1315,12 @@ button.secondary {
   top: 100%;
   left: 0;
   right: 0;
+  min-width: 350px;
   margin-top: 4px;
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   overflow: hidden;
 }
@@ -1338,15 +1344,20 @@ button.secondary {
 }
 
 .select-option {
-  padding: 10px 16px;
+  padding: 12px 16px;
   cursor: pointer;
   transition: background 0.15s;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
 }
 
 .select-option:hover {
   background: #f1f5f9;
+  color: #0f172a;
 }
 
 .select-option.disabled {
