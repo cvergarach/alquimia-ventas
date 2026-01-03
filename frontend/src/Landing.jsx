@@ -7,7 +7,7 @@ function Landing({ onLogin }) {
             {/* Hero Section */}
             <section className="hero-section">
                 <div className="hero-container">
-                    <div className="brand-name">ALQUIMIA</div>
+                    <div className="brand-name">ALQUIM<span className="ia-highlight">IA</span></div>
 
                     <h1 className="hero-headline">
                         ¿Cuántas horas perdiste esta semana<br />
@@ -21,7 +21,7 @@ function Landing({ onLogin }) {
 
                     <div className="hero-cta">
                         <button className="cta-primary" onClick={onLogin}>
-                            Analiza tus ventas ahora
+                            Ingresar
                         </button>
                     </div>
 

@@ -48,6 +48,28 @@
     text-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
 }
 
+.ia-highlight {
+    background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+    display: inline-block;
+    animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.5));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.8));
+    }
+}
+
 .hero-headline {
     font-size: clamp(2.5rem, 5vw, 4rem);
     font-weight: 700;
