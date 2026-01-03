@@ -484,7 +484,7 @@ function App() {
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
           <div className="brand-logo">A</div>
-          <span className="brand-name">ALQUIMIA</span>
+          <span className="brand-name">ALQUIM<span className="ia-box">IA</span></span>
         </div>
 
         <nav className="sidebar-nav">
