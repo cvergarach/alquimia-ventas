@@ -35,8 +35,35 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Configuración de herramientas para Gemini
-const tools = [
+// Función para obtener herramientas dinámicamente de Supabase
+async function getDynamicTools() {
+  try {
+    const { data, error } = await supabase
+      .from('ai_tools')
+      .select('*')
+      .eq('enabled', true);
+
+    if (error || !data || data.length === 0) {
+      console.warn('[Tools] No dynamic tools found or error, using fallback hardcoded tools.', error?.message);
+      return hardcodedTools;
+    }
+
+    console.log(`[Tools] Loaded ${data.length} dynamic tools from Supabase.`);
+    return [{
+      functionDeclarations: data.map(t => ({
+        name: t.name,
+        description: t.description,
+        parameters: t.parameters
+      }))
+    }];
+  } catch (err) {
+    console.error('[Tools] Error fetching dynamic tools:', err);
+    return hardcodedTools;
+  }
+}
+
+// Configuración de herramientas estáticas (Fallback)
+const hardcodedTools = [
   {
     functionDeclarations: [
       {
@@ -541,6 +568,9 @@ app.post('/api/chat', async (req, res) => {
     const { message, history = [], modelConfig = { provider: 'gemini', modelId: 'gemini-2.5-flash' } } = req.body;
     console.log(`[Chat] User message: "${message.substring(0, 50)}..." using ${modelConfig.provider} (${modelConfig.modelId})`);
 
+    // Obtener herramientas dinámicas
+    const currentTools = await getDynamicTools();
+
     const today = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
     const systemPrompt = `Eres un ANALISTA DE DATOS SENIOR actuando como asistente para el JEFE DE CANAL de Alquimia Datalive.
 Tu objetivo es ayudar al Jefe de Canal a tomar decisiones estratégicas basadas en datos reales.
@@ -1000,6 +1030,52 @@ app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
         }
       });
 
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============= ENDPOINTS DE CONFIGURACION =============
+
+// Listar herramientas
+app.get('/api/settings/tools', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('ai_tools')
+      .select('*')
+      .order('name');
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Crear/Actualizar herramienta
+app.post('/api/settings/tools', async (req, res) => {
+  try {
+    const tool = req.body;
+    const { data, error } = await supabase
+      .from('ai_tools')
+      .upsert(tool)
+      .select();
+    if (error) throw error;
+    res.json({ success: true, data: data[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Eliminar herramienta
+app.delete('/api/settings/tools/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabase
+      .from('ai_tools')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    res.json({ success: true, message: 'Herramienta eliminada' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

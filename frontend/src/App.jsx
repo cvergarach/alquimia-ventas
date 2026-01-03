@@ -29,7 +29,69 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [filters, setFilters] = useState({ canal: '', marca: '', sucursal: '', fecha_inicio: '', fecha_fin: '' })
   const [filterOptions, setFilterOptions] = useState({ canales: [], marcas: [], sucursales: [] })
+  const [managedTools, setManagedTools] = useState([])
+  const [editingTool, setEditingTool] = useState(null)
   const messagesEndRef = useRef(null)
+
+  // ... (availableModels setup)
+
+  useEffect(() => {
+    if (activeSection === 'settings') {
+      fetchManagedTools()
+    }
+  }, [activeSection])
+
+  const fetchManagedTools = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/settings/tools`)
+      if (response.data.success) {
+        setManagedTools(response.data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching tools:', error)
+    }
+  }
+
+  const handleSaveTool = async (tool) => {
+    try {
+      // Si el tool viene como string de JSON en parameters, parsearlo
+      const payload = { ...tool }
+      if (typeof payload.parameters === 'string') {
+        try {
+          payload.parameters = JSON.parse(payload.parameters)
+        } catch (e) {
+          alert('Error en el formato JSON de los parámetros')
+          return
+        }
+      }
+
+      const response = await axios.post(`${API_URL}/api/settings/tools`, payload)
+      if (response.data.success) {
+        setEditingTool(null)
+        fetchManagedTools()
+        alert('Herramienta guardada con éxito')
+      }
+    } catch (error) {
+      console.error('Error saving tool:', error)
+      alert('Error al guardar la herramienta')
+    }
+  }
+
+  const handleDeleteTool = async (id) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta herramienta?')) return
+    try {
+      const response = await axios.delete(`${API_URL}/api/settings/tools/${id}`)
+      if (response.data.success) {
+        fetchManagedTools()
+      }
+    } catch (error) {
+      console.error('Error deleting tool:', error)
+    }
+  }
+
+  const handleToggleTool = async (tool) => {
+    handleSaveTool({ ...tool, enabled: !tool.enabled })
+  }
 
   const availableModels = [
     { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini', icon: '⚡' },
@@ -606,6 +668,100 @@ function App() {
                   ) : <div className="loading">Cargando datos de Sheets...</div>}
                 </div>
               </div>
+            </div>
+          )}
+          {activeSection === 'settings' && (
+            <div className="card settings-section">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2>⚙️ Configuración de Herramientas AI</h2>
+                <button onClick={() => setEditingTool({ name: '', description: '', parameters: '{}', provider: 'supabase', enabled: true })}>
+                  + Nueva Herramienta
+                </button>
+              </div>
+
+              <div className="table-container">
+                <table className="settings-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Descripción</th>
+                      <th>Proveedor</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {managedTools.map(tool => (
+                      <tr key={tool.id}>
+                        <td style={{ fontWeight: 'bold' }}>{tool.name}</td>
+                        <td style={{ fontSize: '0.8rem', maxWidth: '300px' }}>{tool.description}</td>
+                        <td>{tool.provider}</td>
+                        <td>
+                          <span className={`badge ${tool.enabled ? 'success' : 'error'}`} onClick={() => handleToggleTool(tool)} style={{ cursor: 'pointer' }}>
+                            {tool.enabled ? 'Activa' : 'Inactiva'}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button className="small-btn" onClick={() => setEditingTool({ ...tool, parameters: JSON.stringify(tool.parameters, null, 2) })}>✏️</button>
+                            <button className="small-btn error" onClick={() => handleDeleteTool(tool.id)}>🗑️</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {editingTool && (
+                <div className="modal-overlay">
+                  <div className="modal-card">
+                    <h3>{editingTool.id ? 'Editar' : 'Nueva'} Herramienta</h3>
+                    <div className="form-group">
+                      <label>Nombre de la Función</label>
+                      <input
+                        type="text"
+                        value={editingTool.name}
+                        onChange={(e) => setEditingTool({ ...editingTool, name: e.target.value })}
+                        placeholder="ej: get_custom_stats"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Descripción para la IA</label>
+                      <textarea
+                        rows="3"
+                        value={editingTool.description}
+                        onChange={(e) => setEditingTool({ ...editingTool, description: e.target.value })}
+                        placeholder="Explica qué hace y cuándo usarla..."
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Parámetros (JSON Schema)</label>
+                      <textarea
+                        rows="6"
+                        style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
+                        value={editingTool.parameters}
+                        onChange={(e) => setEditingTool({ ...editingTool, parameters: e.target.value })}
+                        placeholder='{"type": "object", "properties": {...}}'
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Proveedor</label>
+                      <select
+                        value={editingTool.provider}
+                        onChange={(e) => setEditingTool({ ...editingTool, provider: e.target.value })}
+                      >
+                        <option value="supabase">Supabase (SQL)</option>
+                        <option value="sheets">Google Sheets</option>
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                      <button className="primary" onClick={() => handleSaveTool(editingTool)}>Guardar</button>
+                      <button className="secondary" onClick={() => setEditingTool(null)}>Cancelar</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
