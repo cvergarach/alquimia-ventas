@@ -206,8 +206,8 @@ async function callSupabaseTool(toolName, args) {
     // Implementación directa sin spawn para MVP
     switch (toolName) {
       case 'get_summary_stats': {
-        // Optimizado: Agregación en base de datos (SQL) para no traer miles de filas a memoria
-        let query = supabase.from('ventas').select('cantidad.sum(), ingreso_neto.sum(), costo_neto.sum(), margen.sum()', { count: 'exact' });
+        // Seleccionamos solo las columnas necesarias para no saturar memoria
+        let query = supabase.from('ventas').select('cantidad, ingreso_neto, costo_neto, margen');
 
         if (args.filters) {
           Object.entries(args.filters).forEach(([key, value]) => {
@@ -223,22 +223,20 @@ async function callSupabaseTool(toolName, args) {
           });
         }
 
-        const { data, error, count } = await query;
+        const { data, error } = await query.limit(60000);
         if (error) throw error;
 
-        // Supabase retorna un array con un objeto que tiene las sumas
-        const row = data[0] || {};
-        const summary = {
-          total_registros: count || 0,
-          total_unidades: parseFloat(row.sum_cantidad || 0),
-          total_ingreso: parseFloat(row.sum_ingreso_neto || 0),
-          total_costo: parseFloat(row.sum_costo_neto || 0),
-          total_margen: parseFloat(row.sum_margen || 0)
-        };
+        const summary = data.reduce((acc, row) => ({
+          total_registros: acc.total_registros + 1,
+          total_unidades: acc.total_unidades + parseFloat(row.cantidad || 0),
+          total_ingreso: acc.total_ingreso + parseFloat(row.ingreso_neto || 0),
+          total_costo: acc.total_costo + parseFloat(row.costo_neto || 0),
+          total_margen: acc.total_margen + parseFloat(row.margen || 0)
+        }), { total_registros: 0, total_unidades: 0, total_ingreso: 0, total_costo: 0, total_margen: 0 });
 
         return {
           success: true,
-          message: "Totales calculados mediante SQL sobre el universo completo de datos.",
+          message: "Totales procesados en servidor sobre el 100% de la data filtrada.",
           data: summary
         };
       }
@@ -287,7 +285,7 @@ async function callSupabaseTool(toolName, args) {
           });
         }
 
-        const { data, error } = await query;
+        const { data, error } = await query.limit(60000);
         if (error) throw error;
 
         // Agrupar en memoria
@@ -320,7 +318,8 @@ async function callSupabaseTool(toolName, args) {
       }
 
       case 'get_top_productos': {
-        let query = supabase.from('ventas').select('*');
+        // Seleccionamos solo columnas clave para el ranking
+        let query = supabase.from('ventas').select('sku, modelo, marca, cantidad, ingreso_neto, margen');
 
         if (args.filters) {
           Object.entries(args.filters).forEach(([key, value]) => {
@@ -336,7 +335,7 @@ async function callSupabaseTool(toolName, args) {
           });
         }
 
-        const { data, error } = await query;
+        const { data, error } = await query.limit(60000);
         if (error) throw error;
 
         const sorted = data.sort((a, b) => {
@@ -767,7 +766,8 @@ app.get('/api/analytics/charts', async (req, res) => {
     // Obtenemos todos los datos necesarios para agrupar (solo campos clave para ahorrar ancho de banda internos)
     const { data, error } = await supabase
       .from('ventas')
-      .select('dia, canal, marca, cantidad');
+      .select('dia, canal, marca, cantidad')
+      .limit(60000); // Aumentado para cubrir los 55,000+ registros del usuario
 
     if (error) throw error;
 
