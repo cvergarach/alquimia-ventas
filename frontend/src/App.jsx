@@ -476,30 +476,30 @@ function App() {
       {/* Sidebar Navigation */}
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
-          <div className="brand-logo">✨</div>
+          <div className="brand-logo">A</div>
           <span className="brand-name">ALQUIMIA</span>
         </div>
 
         <nav className="sidebar-nav">
           <div className={`nav-item ${activeSection === 'dashboard' ? 'active' : ''}`} onClick={() => { setActiveSection('dashboard'); setIsSidebarOpen(false); }}>
-            <span>📊</span> Dashboard
+            Dashboard
           </div>
           <div className={`nav-item ${activeSection === 'data' ? 'active' : ''}`} onClick={() => { setActiveSection('data'); setIsSidebarOpen(false); }}>
-            <span>💾</span> Datos
+            Datos
           </div>
           <div className={`nav-item ${activeSection === 'chats' ? 'active' : ''}`} onClick={() => { setActiveSection('chats'); setIsSidebarOpen(false); }}>
-            <span>💬</span> Chats
+            Chat IA
           </div>
           <div className={`nav-item ${activeSection === 'guia' ? 'active' : ''}`} onClick={() => { setActiveSection('guia'); setIsSidebarOpen(false); }}>
-            <span>📖</span> Guía
+            Guía
           </div>
 
           <div className="sidebar-section-title">Administración</div>
           <div className={`nav-item ${activeSection === 'users' ? 'active' : ''}`} onClick={() => { setActiveSection('users'); setIsSidebarOpen(false); }}>
-            <span>👥</span> Usuarios
+            Usuarios
           </div>
           <div className={`nav-item ${activeSection === 'settings' ? 'active' : ''}`} onClick={() => { setActiveSection('settings'); setIsSidebarOpen(false); }}>
-            <span>⚙️</span> Configuración
+            Configuración
           </div>
         </nav>
 
@@ -514,7 +514,7 @@ function App() {
             </div>
           </div>
           <div className="nav-item" style={{ padding: '8px 0', fontSize: '0.8rem' }} onClick={handleLogout}>
-            <span>🚪</span> Cerrar Sesión
+            Cerrar Sesión
           </div>
         </div>
       </aside>
@@ -530,7 +530,7 @@ function App() {
               <div className="top-bar-title">
                 {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}
               </div>
-              <div className="top-bar-subtitle">Inteligencia de Datos Aplicada</div>
+              <div className="top-bar-subtitle">Dashboard de Análisis de Ventas</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -607,7 +607,7 @@ function App() {
                   <div className="kpi-card-content">
                     <span className="kpi-label">Total Unidades</span>
                     <div className="kpi-value">{formatNumber(kpis.total_unidades)}</div>
-                    <div className="trend-badge trend-up">⚡ +0% hoy</div>
+                    <div className="trend-badge trend-up">+0% hoy</div>
                   </div>
                 </div>
 
@@ -615,7 +615,7 @@ function App() {
                   <div className="kpi-card-content">
                     <span className="kpi-label">Ingreso Bruto</span>
                     <div className="kpi-value">{formatCurrency(kpis.total_ingreso)}</div>
-                    <div className="trend-badge trend-up">📈 +0% hoy</div>
+                    <div className="trend-badge trend-up">+0% hoy</div>
                   </div>
                 </div>
 
@@ -623,7 +623,7 @@ function App() {
                   <div className="kpi-card-content">
                     <span className="kpi-label">Costo total</span>
                     <div className="kpi-value">{formatCurrency(kpis.total_costo)}</div>
-                    <div className="trend-badge trend-up">📉 +0% hoy</div>
+                    <div className="trend-badge trend-up">+0% hoy</div>
                   </div>
                 </div>
 
@@ -631,7 +631,7 @@ function App() {
                   <div className="kpi-card-content">
                     <span className="kpi-label">Margen Neto</span>
                     <div className="kpi-value">{formatCurrency(kpis.total_margen)}</div>
-                    <div className="trend-badge trend-up">✅ +0% hoy</div>
+                    <div className="trend-badge trend-up">+0% hoy</div>
                   </div>
                 </div>
 
@@ -648,7 +648,7 @@ function App() {
               <div className="grid">
                 <div className="card chart-card wide">
                   <div className="card-header">
-                    <h2>📈 Tendencia de Ventas (unidades)</h2>
+                    <h2>Tendencia de Ventas</h2>
                   </div>
                   <div className="chart-wrapper" style={{ height: '300px' }}>
                     <ResponsiveContainer width="100%" height="100%">
@@ -726,7 +726,7 @@ function App() {
           {activeSection === 'chats' && (
             <div className="card chat-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h2>💬 Asistente Alquimia Datalive</h2>
+                <h2>Asistente Alquimia</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   <button onClick={handleClearChat} style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#f7fafc', color: '#666', border: '1px solid #e2e8f0' }}>
                     Limpiar
@@ -842,7 +842,7 @@ function App() {
 
               <div className="card" style={{ gridColumn: '1/-1' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h2>📈 Tablas de Soporte (Google Sheets)</h2>
+                  <h2>Tablas de Soporte (Google Sheets)</h2>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {['Metas', 'Forecast', 'Comisiones'].map(sheet => (
                       <button
@@ -875,7 +875,7 @@ function App() {
           {activeSection === 'settings' && (
             <div className="card settings-section">
               <div className="magic-creator-card" style={{ background: 'rgba(102, 126, 234, 0.05)', padding: '24px', borderRadius: '16px', border: '1px dashed #667eea', marginBottom: '30px' }}>
-                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>✨ Alquimia Magic Creator</h3>
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>Alquimia Magic Creator</h3>
                 <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>Describe la nueva capacidad y la IA construirá la herramienta por ti.</p>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
                   <input
@@ -904,7 +904,7 @@ function App() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2>🛠️ Herramientas Instaladas</h2>
+                <h2>Herramientas Instaladas</h2>
                 <button className="secondary" onClick={() => setEditingTool({ name: '', description: '', parameters: '{}', sql_template: '', provider: 'supabase', enabled: true })}>
                   + Manual
                 </button>
@@ -934,8 +934,8 @@ function App() {
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            <button className="small-btn" onClick={() => setEditingTool({ ...tool, parameters: JSON.stringify(tool.parameters, null, 2) })}>✏️</button>
-                            <button className="small-btn error" onClick={() => handleDeleteTool(tool.id)}>🗑️</button>
+                            <button className="small-btn" onClick={() => setEditingTool({ ...tool, parameters: JSON.stringify(tool.parameters, null, 2) })}>Editar</button>
+                            <button className="small-btn error" onClick={() => handleDeleteTool(tool.id)}>Eliminar</button>
                           </div>
                         </td>
                       </tr>
@@ -1009,14 +1009,14 @@ function App() {
           {activeSection === 'guia' && (
             <div className="card guide-section">
               <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-                <h1 style={{ fontSize: '2.5rem', marginBottom: '10px', color: '#0f172a' }}>📖 Guía de Alquimia</h1>
+                <h1 style={{ fontSize: '2.5rem', marginBottom: '10px', color: '#0f172a' }}>Guía de Alquimia</h1>
                 <p style={{ fontSize: '1.1rem', color: '#64748b', marginBottom: '40px' }}>
                   Todo lo que necesitas saber para aprovechar al máximo tu dashboard inteligente
                 </p>
 
                 {/* Introducción */}
                 <section style={{ marginBottom: '50px' }}>
-                  <h2 style={{ fontSize: '1.8rem', marginBottom: '15px', color: '#1e293b' }}>🎯 ¿Qué es Alquimia?</h2>
+                  <h2 style={{ fontSize: '1.8rem', marginBottom: '15px', color: '#1e293b' }}>¿Qué es Alquimia?</h2>
                   <p style={{ lineHeight: '1.8', color: '#475569', marginBottom: '15px' }}>
                     Alquimia es un <strong>dashboard inteligente de análisis de ventas</strong> diseñado para jefes de canal y gerentes comerciales.
                     Combina visualización de datos en tiempo real con inteligencia artificial conversacional para tomar decisiones estratégicas basadas en datos.
@@ -1025,7 +1025,7 @@ function App() {
 
                 {/* Funcionalidades */}
                 <section style={{ marginBottom: '50px' }}>
-                  <h2 style={{ fontSize: '1.8rem', marginBottom: '20px', color: '#1e293b' }}>📊 Funcionalidades Principales</h2>
+                  <h2 style={{ fontSize: '1.8rem', marginBottom: '20px', color: '#1e293b' }}>Funcionalidades Principales</h2>
 
                   <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
                     <h3 style={{ fontSize: '1.3rem', marginBottom: '12px', color: '#0f172a' }}>1. Dashboard Visual Interactivo</h3>
@@ -1085,7 +1085,7 @@ function App() {
 
                 {/* Casos de Uso */}
                 <section style={{ marginBottom: '50px' }}>
-                  <h2 style={{ fontSize: '1.8rem', marginBottom: '20px', color: '#1e293b' }}>💡 Casos de Uso Reales</h2>
+                  <h2 style={{ fontSize: '1.8rem', marginBottom: '20px', color: '#1e293b' }}>Casos de Uso Reales</h2>
 
                   <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '24px', borderRadius: '12px', marginBottom: '20px', color: 'white' }}>
                     <h3 style={{ fontSize: '1.3rem', marginBottom: '12px' }}>Caso 1: Monitoreo Diario</h3>
@@ -1098,7 +1098,7 @@ function App() {
                       <li>AI compara y muestra que sábado vendió 30% más</li>
                       <li>Toma acción basada en insights</li>
                     </ol>
-                    <p style={{ marginTop: '12px', fontWeight: '600' }}>⏱️ Tiempo total: 3 minutos</p>
+                    <p style={{ marginTop: '12px', fontWeight: '600' }}>Tiempo total: 3 minutos</p>
                   </div>
 
                   <div style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', padding: '24px', borderRadius: '12px', marginBottom: '20px', color: 'white' }}>
@@ -1112,30 +1112,30 @@ function App() {
                       <li>Pregunta: "¿En qué canal se vendió más iPhone?"</li>
                       <li>AI responde con desglose detallado</li>
                     </ol>
-                    <p style={{ marginTop: '12px', fontWeight: '600' }}>✅ Insight: La campaña funcionó, especialmente en E-commerce</p>
+                    <p style={{ marginTop: '12px', fontWeight: '600' }}>Insight: La campaña funcionó, especialmente en E-commerce</p>
                   </div>
                 </section>
 
                 {/* Tips y Mejores Prácticas */}
                 <section style={{ marginBottom: '50px' }}>
-                  <h2 style={{ fontSize: '1.8rem', marginBottom: '20px', color: '#1e293b' }}>🚀 Tips y Mejores Prácticas</h2>
+                  <h2 style={{ fontSize: '1.8rem', marginBottom: '20px', color: '#1e293b' }}>Tips y Mejores Prácticas</h2>
 
                   <div style={{ background: '#fef3c7', padding: '20px', borderRadius: '12px', marginBottom: '15px', border: '2px solid #fbbf24' }}>
-                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#92400e' }}>💡 Tip: Usa filtros combinados</p>
+                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#92400e' }}>Tip: Usa filtros combinados</p>
                     <p style={{ lineHeight: '1.8', color: '#78350f' }}>
                       Combina múltiples filtros para análisis profundos. Ejemplo: "Ventas de iPhone en E-commerce en Santiago durante Black Friday"
                     </p>
                   </div>
 
                   <div style={{ background: '#dbeafe', padding: '20px', borderRadius: '12px', marginBottom: '15px', border: '2px solid #3b82f6' }}>
-                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#1e3a8a' }}>🔍 Tip: Búsqueda inteligente</p>
+                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#1e3a8a' }}>Tip: Búsqueda inteligente</p>
                     <p style={{ lineHeight: '1.8', color: '#1e40af' }}>
                       Con +100 sucursales, usa la búsqueda. Escribe "Puente" y aparecerá "CAC Puente Alto" instantáneamente.
                     </p>
                   </div>
 
                   <div style={{ background: '#dcfce7', padding: '20px', borderRadius: '12px', border: '2px solid #22c55e' }}>
-                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#14532d' }}>✨ Tip: Sé específico con el AI</p>
+                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#14532d' }}>Tip: Sé específico con el AI</p>
                     <p style={{ lineHeight: '1.8', color: '#15803d' }}>
                       En lugar de "productos menos vendidos", prueba "productos de E-commerce del 6 de enero ordenados por cantidad ascendente"
                     </p>
@@ -1150,7 +1150,7 @@ function App() {
                     prueba preguntarle al AI en la sección de Chat.
                   </p>
                   <div style={{ display: 'inline-block', background: '#667eea', color: 'white', padding: '12px 24px', borderRadius: '8px', fontWeight: '600' }}>
-                    💬 Ir a Chat
+                    Ir a Chat
                   </div>
                 </section>
               </div>
@@ -1163,7 +1163,7 @@ function App() {
               <div className="card settings-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                   <div>
-                    <h2>👥 Gestión de Usuarios</h2>
+                    <h2>Gestión de Usuarios</h2>
                     <p style={{ fontSize: '0.9rem', color: '#666' }}>Crea y administra los accesos a la plataforma Alquimia.</p>
                   </div>
                 </div>
@@ -1223,7 +1223,7 @@ function App() {
                           </td>
                           <td><span className="badge">{user.role}</span></td>
                           <td>
-                            <button className="small-btn error" onClick={() => handleDeleteUser(user.id)}>🗑️</button>
+                            <button className="small-btn error" onClick={() => handleDeleteUser(user.id)}>Eliminar</button>
                           </td>
                         </tr>
                       ))}
