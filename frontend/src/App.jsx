@@ -472,22 +472,27 @@ function App() {
                   </button>
                 </div>
                 <div className="filter-grid">
-                  <div className="filter-control">
-                    <label>Periodo</label>
-                    <div className="date-range">
-                      <input
-                        type="date"
-                        className="glass-input"
-                        value={filters.fecha_inicio}
-                        onChange={(e) => setFilters({ ...filters, fecha_inicio: e.target.value })}
-                      />
-                      <span>hasta</span>
-                      <input
-                        type="date"
-                        className="glass-input"
-                        value={filters.fecha_fin}
-                        onChange={(e) => setFilters({ ...filters, fecha_fin: e.target.value })}
-                      />
+                  <div className="filter-control date-picker-control">
+                    <label>Rango de Fechas</label>
+                    <div className="modern-date-picker">
+                      <div className="date-input-wrapper">
+                        <span>Desde</span>
+                        <input
+                          type="date"
+                          className="glass-input modern-date"
+                          value={filters.fecha_inicio}
+                          onChange={(e) => setFilters({ ...filters, fecha_inicio: e.target.value })}
+                        />
+                      </div>
+                      <div className="date-input-wrapper">
+                        <span>Hasta</span>
+                        <input
+                          type="date"
+                          className="glass-input modern-date"
+                          value={filters.fecha_fin}
+                          onChange={(e) => setFilters({ ...filters, fecha_fin: e.target.value })}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -537,7 +542,6 @@ function App() {
                     <div className="kpi-value">{formatNumber(kpis.total_unidades)}</div>
                     <div className="trend-badge trend-up">⚡ +0% hoy</div>
                   </div>
-                  <div className="kpi-icon icon-units">📦</div>
                 </div>
 
                 <div className="kpi-card glassmorphism highlighted">
@@ -546,7 +550,14 @@ function App() {
                     <div className="kpi-value">{formatCurrency(kpis.total_ingreso)}</div>
                     <div className="trend-badge trend-up">📈 +0% hoy</div>
                   </div>
-                  <div className="kpi-icon icon-revenue">💰</div>
+                </div>
+
+                <div className="kpi-card glassmorphism">
+                  <div className="kpi-card-content">
+                    <span className="kpi-label">Costo total</span>
+                    <div className="kpi-value">{formatCurrency(kpis.total_costo)}</div>
+                    <div className="trend-badge trend-up">📉 +0% hoy</div>
+                  </div>
                 </div>
 
                 <div className="kpi-card glassmorphism">
@@ -555,7 +566,6 @@ function App() {
                     <div className="kpi-value">{formatCurrency(kpis.total_margen)}</div>
                     <div className="trend-badge trend-up">✅ +0% hoy</div>
                   </div>
-                  <div className="kpi-icon icon-margin">📊</div>
                 </div>
 
                 <div className="kpi-card glassmorphism">
@@ -564,7 +574,6 @@ function App() {
                     <div className="kpi-value">{kpis.margenPct.toFixed(1)}%</div>
                     <div className="trend-badge trend-up">🎯 +0% hoy</div>
                   </div>
-                  <div className="kpi-icon icon-efficiency">🎯</div>
                 </div>
               </div>
 

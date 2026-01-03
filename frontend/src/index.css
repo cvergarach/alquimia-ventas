@@ -1015,15 +1015,26 @@ button.secondary {
 }
 
 .filter-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-end;
 }
 
 .filter-control {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 180px;
+}
+
+.filter-control.date-picker-control {
+  min-width: fit-content;
+}
+
+.glass-select {
+  width: 100%;
+  min-width: 200px;
 }
 
 .filter-control label {
@@ -1034,15 +1045,44 @@ button.secondary {
   letter-spacing: 0.5px;
 }
 
-.date-range {
+/* Modern Date Picker Styling */
+.modern-date-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.date-input-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.date-range span {
-  font-size: 0.8rem;
-  color: #64748b;
+.date-input-wrapper span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.modern-date {
+  border: none !important;
+  padding: 0 !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #1e293b !important;
+  background: transparent !important;
+  cursor: pointer;
+}
+
+.modern-date::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: opacity(0.6);
 }
 
 .glassmorphism {
@@ -1057,38 +1097,30 @@ button.secondary {
 }
 
 .kpi-label {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: #64748b;
-  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
 }
 
 .kpi-value {
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 800;
   color: #0f172a;
-  letter-spacing: -0.5px;
+  letter-spacing: -1px;
 }
 
-.icon-units {
-  color: #6366f1;
-  background: #eef2ff;
+.kpi-card {
+  padding: 24px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
 }
 
-.icon-revenue {
-  color: #f59e0b;
-  background: #fffbeb;
-}
-
-.icon-margin {
-  color: #10b981;
-  background: #ecfdf5;
-}
-
-.icon-efficiency {
-  color: #ec4899;
-  background: #fdf2f8;
-}
+/* Icons removed for corporate style */
 
 .chart-card.wide {
   grid-column: span 2;

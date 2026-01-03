@@ -915,9 +915,9 @@ app.get('/api/analytics/filters', async (req, res) => {
   try {
     console.log('[API] GET /api/analytics/filters');
 
-    // Función helper para obtener valores únicos (limitado a los primeros 10000 registros para velocidad)
+    // Función helper para obtener valores únicos
     const getDistinct = async (column) => {
-      const { data, error } = await supabase.from('ventas').select(column).limit(10000);
+      const { data, error } = await supabase.from('ventas').select(column);
       if (error) throw error;
       return [...new Set(data.map(item => item[column]))].filter(Boolean).sort();
     };
