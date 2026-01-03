@@ -267,9 +267,9 @@ function App() {
 
   const availableModels = [
     { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini', icon: '⚡' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini', icon: '🧠' },
-    { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', provider: 'claude', icon: '🎭' },
-    { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', provider: 'claude', icon: '🕊️' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini', icon: '' },
+    { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', provider: 'claude', icon: '' },
+    { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', provider: 'claude', icon: '' },
   ]
 
   const scrollToBottom = () => {
@@ -534,7 +534,7 @@ function App() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ fontSize: '1.2rem', cursor: 'pointer' }}>🔔</div>
+            <div style={{ fontSize: '1.2rem', cursor: 'pointer' }}></div>
           </div>
         </header>
 
@@ -544,7 +544,7 @@ function App() {
               {/* Premium Filter Bar */}
               <div className="premium-filter-card">
                 <div className="filter-header">
-                  <span className="filter-title">🔍 Filtros de Análisis</span>
+                  <span className="filter-title">Filtros de Análisis</span>
                   <button className="reset-btn" onClick={() => setFilters({ canal: '', marca: '', sucursal: '', fecha_inicio: '', fecha_fin: '' })}>
                     Limpiar Filtros
                   </button>
@@ -639,7 +639,7 @@ function App() {
                   <div className="kpi-card-content">
                     <span className="kpi-label">Eficiencia (Mgn%)</span>
                     <div className="kpi-value">{kpis.margenPct.toFixed(1)}%</div>
-                    <div className="trend-badge trend-up">🎯 +0% hoy</div>
+                    <div className="trend-badge trend-up">+0% hoy</div>
                   </div>
                 </div>
               </div>
@@ -750,20 +750,20 @@ function App() {
                 <div className="chat-messages">
                   {chatMessages.length === 0 ? (
                     <div style={{ textAlign: 'center', color: '#666', padding: '60px' }}>
-                      <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>👋 ¿Cómo puedo ayudarte hoy?</p>
+                      <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>¿Cómo puedo ayudarte hoy?</p>
                       <p>Consulta sobre ventas, márgenes o metas directamente.</p>
                     </div>
                   ) : (
                     chatMessages.map((msg, idx) => (
                       <div key={idx} className={`message ${msg.role}`}>
                         <div className="message-role">
-                          {msg.role === 'user' ? 'Tú' : '🤖 Datalive AI'}
+                          {msg.role === 'user' ? 'Tú' : 'Alquimia AI'}
                           {msg.toolsUsed && <span className="badge" style={{ marginLeft: '10px' }}>{msg.toolsUsed[0]}</span>}
                         </div>
                         <div className="message-content">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                           {msg.role === 'assistant' && (
-                            <button className="copy-button" onClick={() => copyToClipboard(msg.content)}>📋 Copiar para WhatsApp</button>
+                            <button className="copy-button" onClick={() => copyToClipboard(msg.content)}>Copiar para WhatsApp</button>
                           )}
                         </div>
                       </div>
@@ -794,13 +794,13 @@ function App() {
             <div className="grid">
               <div className="card" style={{ gridColumn: '1/-1' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h2>📦 Registro de Ventas (Supabase)</h2>
+                  <h2>Registro de Ventas (Supabase)</h2>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <button
                       onClick={() => document.getElementById('data-file-upload').click()}
                       style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
-                      🚀 Subir CSV
+                      Subir CSV
                     </button>
                     <input
                       id="data-file-upload"
@@ -1221,8 +1221,8 @@ function App() {
                           <td>{user.first_name} {user.last_name}</td>
                           <td style={{ fontWeight: '600' }}>{user.username}</td>
                           <td style={{ fontSize: '0.8rem' }}>
-                            <div>📧 {user.email}</div>
-                            <div>📱 {user.phone}</div>
+                            <div>{user.email}</div>
+                            <div>{user.phone}</div>
                           </td>
                           <td><span className="badge">{user.role}</span></td>
                           <td>
