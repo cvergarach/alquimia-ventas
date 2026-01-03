@@ -40,6 +40,19 @@ const tools = [
   {
     functionDeclarations: [
       {
+        name: "get_summary_stats",
+        description: "OBTENER TOTALES RÁPIDOS (RECOMENDADO). Retorna el gran total de unidades, ingresos y margen para un periodo o filtro sin traer filas individuales. Ideal para ahorrar tokens.",
+        parameters: {
+          type: "object",
+          properties: {
+            filters: {
+              type: "object",
+              description: "Filtros opcionales (dia, canal, marca, sucursal, etc.)"
+            }
+          }
+        }
+      },
+      {
         name: "query_ventas",
         description: "Consulta datos de ventas con filtros opcionales (canal, marca, sku, sucursal, modelo).",
         parameters: {
@@ -192,6 +205,41 @@ async function callSupabaseTool(toolName, args) {
   try {
     // Implementación directa sin spawn para MVP
     switch (toolName) {
+      case 'get_summary_stats': {
+        let query = supabase.from('ventas').select('cantidad, ingreso_neto, costo_neto, margen');
+
+        if (args.filters) {
+          Object.entries(args.filters).forEach(([key, value]) => {
+            if (key === 'fecha_inicio' && value) {
+              query = query.gte('dia', value);
+            } else if (key === 'fecha_fin' && value) {
+              query = query.lte('dia', value);
+            } else if (key === 'dia' && value) {
+              query = query.eq('dia', value);
+            } else if (value) {
+              query = query.eq(key, value);
+            }
+          });
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        const summary = data.reduce((acc, row) => ({
+          total_registros: acc.total_registros + 1,
+          total_unidades: acc.total_unidades + parseFloat(row.cantidad || 0),
+          total_ingreso: acc.total_ingreso + parseFloat(row.ingreso_neto || 0),
+          total_costo: acc.total_costo + parseFloat(row.costo_neto || 0),
+          total_margen: acc.total_margen + parseFloat(row.margen || 0)
+        }), { total_registros: 0, total_unidades: 0, total_ingreso: 0, total_costo: 0, total_margen: 0 });
+
+        return {
+          success: true,
+          message: "Totales calculados sobre el 100% de los datos filtrados.",
+          data: summary
+        };
+      }
+
       case 'query_ventas': {
         let query = supabase.from('ventas').select('*');
 
@@ -477,11 +525,12 @@ FORMATO DE RESPUESTA (CRÍTICO para WhatsApp/Escritorio):
 2. LISTAS: Usa viñetas claras (• o -) para métricas individuales. No escribas párrafos largos.
 3. NEGRILLAS: Usa asteriscos para resaltar cifras y nombres de canales/marcas (ej: *81 unidades*).
 4. ESPACIADO: Deja un doble salto de línea entre cada bloque principal de información.
-5. EFICIENCIA (IMPORTANTE): Las herramientas de AGREGACIÓN (\`aggregate_ventas\`) procesan el 100% de los datos en la base de datos y te dan el total exacto. Úsalas SIEMPRE para resúmenes de ventas, metas o comparativas globales.
-6. DETALLE: Usa \`query_ventas\` (filas individuales) solo cuando el usuario pida ver ejemplos específicos de transacciones. Los resultados de esta herramienta se truncan por seguridad, pero los de AGREGACIÓN no.
-7. AVISO: Si ves que un resultado de \`query_ventas\` viene marcado como \`truncated: true\`, explícale al usuario que estás viendo una muestra, pero que los totales (si usaste agregación) son exactos sobre el universo completo.
-8. VISUAL: Menciona al usuario que ahora puede ver gráficos de canales, marcas y tendencias en el DASHBOARD VISUAL en la parte superior de la página para complementar tu análisis de texto.
-9. EJECUTIVO: Ve al grano. Menos texto, más estructura.
+5. EFICIENCIA (MÁXIMA PRIORIDAD): Para responder preguntas de totales, promedios o "cómo voy", utiliza SIEMPRE la herramienta `get_summary_stats`. Esta herramienta es la más barata en tokens y procesa el 100% de la base de datos.
+6. SEGMENTACIÓN: Si el usuario pide totales por canal o marca, usa `aggregate_ventas`.
+7. DETALLE: Usa `query_ventas` (filas individuales) ÚNICAMENTE si el usuario pide ver de forma explícita los registros detallados de una venta.
+8. AVISO: Explícale al usuario que usas herramientas de resumen para asegurar precisión sobre el 100% de la data sin gastar tokens innecesarios.
+9. VISUAL: Menciona el DASHBOARD VISUAL en la parte superior.
+10. EJECUTIVO: Ve al grano. Menos texto, más estructura.
 
 DIRECTRICES DE ANÁLISIS:
 1. PERSONA: Responde de forma ejecutiva, proactiva y orientada a resultados. No solo des números, da INSIGHTS.
@@ -663,18 +712,83 @@ Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.2
   }
 });
 
-// Obtener todas las ventas
+// Obtener ventas con paginación
 app.get('/api/ventas', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = (page - 1) * limit;
+
+    console.log(`[API] GET /api/ventas - Page: ${page}, Limit: ${limit}`);
+
+    const { data, error, count } = await supabase
       .from('ventas')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('dia', { ascending: false })
-      .limit(500); // Mostrar los últimos 500 registros para no saturar el frontend
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
-    res.json({ success: true, count: data.length, data });
+    res.json({
+      success: true,
+      count: data.length,
+      total: count,
+      page,
+      totalPages: Math.ceil(count / limit),
+      data
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint para KPIs consolidados (Servidor)
+app.get('/api/analytics/kpis', async (req, res) => {
+  try {
+    console.log('[API] GET /api/analytics/kpis');
+    // Usamos la lógica de get_summary_stats
+    const result = await callSupabaseTool('get_summary_stats', {});
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint para Datos de Gráficos (Servidor)
+app.get('/api/analytics/charts', async (req, res) => {
+  try {
+    console.log('[API] GET /api/analytics/charts');
+
+    // Obtenemos todos los datos necesarios para agrupar (solo campos clave para ahorrar ancho de banda internos)
+    const { data, error } = await supabase
+      .from('ventas')
+      .select('dia, canal, marca, cantidad');
+
+    if (error) throw error;
+
+    // 1. Tendencia Temporal
+    const trend = {};
+    // 2. Por Canal
+    const byChannel = {};
+    // 3. Por Marca
+    const byBrand = {};
+
+    data.forEach(row => {
+      // Trend
+      trend[row.dia] = (trend[row.dia] || 0) + (row.cantidad || 0);
+      // Channel
+      byChannel[row.canal] = (byChannel[row.canal] || 0) + (row.cantidad || 0);
+      // Brand
+      byBrand[row.marca] = (byBrand[row.marca] || 0) + (row.cantidad || 0);
+    });
+
+    const charts = {
+      trend: Object.keys(trend).sort().map(d => ({ date: d, value: trend[d] })),
+      channels: Object.keys(byChannel).map(name => ({ name, value: byChannel[name] })),
+      brands: Object.keys(byBrand).map(name => ({ name, value: byBrand[name] }))
+    };
+
+    res.json({ success: true, data: charts });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

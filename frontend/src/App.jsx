@@ -13,6 +13,9 @@ console.log('Alquimia API URL:', API_URL)
 
 function App() {
   const [ventas, setVentas] = useState([])
+  const [totalVentasCount, setTotalVentasCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [sheetsData, setSheetsData] = useState([])
   const [chatMessages, setChatMessages] = useState([])
   const [inputMessage, setInputMessage] = useState('')
@@ -20,6 +23,8 @@ function App() {
   const [uploadStatus, setUploadStatus] = useState(null)
   const [activeSheet, setActiveSheet] = useState('Metas')
   const [modelConfig, setModelConfig] = useState({ provider: 'gemini', modelId: 'gemini-2.5-flash' })
+  const [kpis, setKpis] = useState({ total_unidades: 0, total_ingreso: 0, total_margen: 0, margenPct: 0 })
+  const [chartsData, setChartsData] = useState({ trend: [], channels: [], brands: [] })
   const messagesEndRef = useRef(null)
 
   const availableModels = [
@@ -40,22 +45,49 @@ function App() {
     scrollToBottom()
   }, [chatMessages, loading])
 
-  // Cargar ventas de Supabase al inicio
+  // Cargar datos al inicio
   useEffect(() => {
-    loadVentas()
+    loadVentas(1)
+    loadAnalytics()
     loadSheetsData('Metas')
   }, [])
 
-  const loadVentas = async () => {
-    console.log('[Frontend] Loading ventas from:', `${API_URL}/api/ventas`);
+  const loadVentas = async (page = 1) => {
+    console.log(`[Frontend] Loading ventas page ${page}`);
     try {
-      const response = await axios.get(`${API_URL}/api/ventas`);
-      console.log('[Frontend] loadVentas success:', response.data);
+      const response = await axios.get(`${API_URL}/api/ventas?page=${page}&limit=50`);
       if (response.data.success) {
         setVentas(response.data.data);
+        setTotalVentasCount(response.data.total);
+        setTotalPages(response.data.totalPages);
+        setCurrentPage(page);
       }
     } catch (error) {
       console.error('[Frontend] loadVentas error:', error);
+    }
+  }
+
+  const loadAnalytics = async () => {
+    console.log('[Frontend] Loading analytics');
+    try {
+      const [kpiRes, chartRes] = await Promise.all([
+        axios.get(`${API_URL}/api/analytics/kpis`),
+        axios.get(`${API_URL}/api/analytics/charts`)
+      ]);
+
+      if (kpiRes.data.success) {
+        const data = kpiRes.data.data;
+        setKpis({
+          ...data,
+          margenPct: data.total_ingreso > 0 ? (data.total_margen / data.total_ingreso) * 100 : 0
+        });
+      }
+
+      if (chartRes.data.success) {
+        setChartsData(chartRes.data.data);
+      }
+    } catch (error) {
+      console.error('[Frontend] loadAnalytics error:', error);
     }
   }
 
@@ -146,7 +178,8 @@ function App() {
           message: `✓ ${response.data.message}`
         })
         console.log('[Frontend] Triggering loadVentas after upload');
-        loadVentas() // Recargar datos
+        loadVentas(1)
+        loadAnalytics()
         setTimeout(() => setUploadStatus(null), 5000)
       }
     } catch (error) {
@@ -169,40 +202,8 @@ function App() {
     })
   }
 
-  // Procesar datos para gráficos
-  const getSalesByChannel = () => {
-    const channels = {}
-    ventas.forEach(v => {
-      channels[v.canal] = (channels[v.canal] || 0) + (v.cantidad || 0)
-    })
-    return Object.keys(channels).map(name => ({ name, value: channels[name] }))
-  }
-
-  const getSalesByBrand = () => {
-    const brands = {}
-    ventas.forEach(v => {
-      brands[v.marca] = (brands[v.marca] || 0) + (v.cantidad || 0)
-    })
-    return Object.keys(brands).map(name => ({ name, value: brands[name] }))
-  }
-
-  const getKPIs = () => {
-    const totalVentas = ventas.reduce((acc, v) => acc + (v.cantidad || 0), 0)
-    const totalIngreso = ventas.reduce((acc, v) => acc + parseFloat(v.ingreso_neto || 0), 0)
-    const totalMargen = ventas.reduce((acc, v) => acc + parseFloat(v.margen || 0), 0)
-    const margenPct = totalIngreso > 0 ? (totalMargen / totalIngreso) * 100 : 0
-
-    return { totalVentas, totalIngreso, totalMargen, margenPct }
-  }
-
-  const getSalesTrend = () => {
-    const trend = {}
-    ventas.forEach(v => {
-      trend[v.dia] = (trend[v.dia] || 0) + (v.cantidad || 0)
-    })
-    return Object.keys(trend)
-      .sort()
-      .map(date => ({ date, value: trend[date] }))
+  const handleClearChat = () => {
+    setChatMessages([])
   }
 
   const COLORS = ['#667eea', '#764ba2', '#4c51bf', '#6b46c1', '#5a67d8', '#805ad5'];
@@ -216,94 +217,88 @@ function App() {
       </div>
 
       {/* KPI Dashboard */}
-      {ventas.length > 0 && (
-        <div className="dashboard-summary">
-          <div className="kpi-card">
-            <h3>Total Ventas</h3>
-            <p className="kpi-value">{getKPIs().totalVentas}</p>
-            <span className="kpi-label">unidades</span>
-          </div>
-          <div className="kpi-card">
-            <h3>Ingreso Total</h3>
-            <p className="kpi-value">${formatNumber(getKPIs().totalIngreso)}</p>
-            <span className="kpi-label">CLP</span>
-          </div>
-          <div className="kpi-card">
-            <h3>Margen Total</h3>
-            <p className="kpi-value" style={{ color: getKPIs().totalMargen >= 0 ? '#48bb78' : '#f56565' }}>
-              ${formatNumber(getKPIs().totalMargen)}
-            </p>
-            <span className="kpi-label">CLP</span>
-          </div>
-          <div className="kpi-card">
-            <h3>% Margen</h3>
-            <p className="kpi-value">{getKPIs().margenPct.toFixed(1)}%</p>
-            <span className="kpi-label">Promedio</span>
-          </div>
+      <div className="dashboard-summary">
+        <div className="kpi-card glass">
+          <h3>Total Unidades</h3>
+          <p className="kpi-value">{formatNumber(kpis.total_unidades)}</p>
+          <span className="kpi-label">Procesado al 100%</span>
         </div>
-      )}
+        <div className="kpi-card glass">
+          <h3>Ingreso Total</h3>
+          <p className="kpi-value">${formatNumber(kpis.total_ingreso)}</p>
+          <span className="kpi-label">CLP</span>
+        </div>
+        <div className="kpi-card glass">
+          <h3>Margen Total</h3>
+          <p className="kpi-value" style={{ color: kpis.total_margen >= 0 ? '#48bb78' : '#f56565' }}>
+            ${formatNumber(kpis.total_margen)}
+          </p>
+          <span className="kpi-label">CLP</span>
+        </div>
+        <div className="kpi-card glass">
+          <h3>% Margen</h3>
+          <p className="kpi-value">{kpis.margenPct.toFixed(1)}%</p>
+          <span className="kpi-label">Promedio Global</span>
+        </div>
+      </div>
 
       {/* Temporal Trend */}
-      {ventas.length > 0 && (
-        <div className="card" style={{ marginBottom: '30px' }}>
-          <h2>📈 Tendencia de Ventas Diarias</h2>
+      <div className="card glass" style={{ marginBottom: '30px' }}>
+        <h2>📈 Tendencia de Ventas Diarias</h2>
+        <div style={{ width: '100%', height: 300 }}>
+          <ResponsiveContainer>
+            <LineChart data={chartsData.trend}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+              <XAxis dataKey="date" fontSize={10} axisLine={false} tickLine={false} />
+              <YAxis fontSize={12} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              <Line type="monotone" dataKey="value" stroke="#667eea" strokeWidth={4} dot={{ r: 4, fill: '#667eea', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8, strokeWidth: 0 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Visual Analytics */}
+      <div className="grid">
+        <div className="card glass">
+          <h2>📊 Ventas por Canal</h2>
           <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer>
-              <LineChart data={getSalesTrend()}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" fontSize={10} />
-                <YAxis fontSize={12} />
-                <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#667eea" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
+              <BarChart data={chartsData.channels}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                <XAxis dataKey="name" fontSize={12} axisLine={false} tickLine={false} />
+                <YAxis fontSize={12} axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ fill: 'rgba(102, 126, 234, 0.05)' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <Bar dataKey="value" fill="#667eea" radius={[6, 6, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
-      )}
-
-      {/* Visual Analytics */}
-      {ventas.length > 0 && (
-        <div className="grid">
-          <div className="card">
-            <h2>📊 Ventas por Canal</h2>
-            <div style={{ width: '100%', height: 300 }}>
-              <ResponsiveContainer>
-                <BarChart data={getSalesByChannel()}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" fontSize={12} />
-                  <YAxis fontSize={12} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#667eea" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          <div className="card">
-            <h2>🏷️ Distribución por Marca</h2>
-            <div style={{ width: '100%', height: 300 }}>
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie
-                    data={getSalesByBrand()}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {getSalesByBrand().map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+        <div className="card glass">
+          <h2>🏷️ Distribución por Marca</h2>
+          <div style={{ width: '100%', height: 300 }}>
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie
+                  data={chartsData.brands}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={100}
+                  paddingAngle={8}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {chartsData.brands.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(255,255,255,0.5)" strokeWidth={2} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Upload CSV */}
       <div className="card">
@@ -326,8 +321,15 @@ function App() {
       {/* Tablas de datos */}
       <div className="grid">
         {/* Tabla Supabase */}
-        <div className="card">
-          <h2>📊 Ventas (Supabase)</h2>
+        <div className="card glass">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h2>📊 Ventas ({totalVentasCount})</h2>
+            <div className="pagination">
+              <button onClick={() => loadVentas(currentPage - 1)} disabled={currentPage === 1}>«</button>
+              <span>{currentPage} / {totalPages}</span>
+              <button onClick={() => loadVentas(currentPage + 1)} disabled={currentPage === totalPages}>»</button>
+            </div>
+          </div>
           <div className="table-container">
             <table>
               <thead>
@@ -414,34 +416,35 @@ function App() {
       <div className="card chat-section">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <h2>💬 Chat con IA + MCP</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '0.9rem', color: '#666' }}>Modelo:</span>
-            <select
-              value={`${modelConfig.provider}:${modelConfig.modelId}`}
-              onChange={(e) => {
-                const [provider, modelId] = e.target.value.split(':');
-                setModelConfig({ provider, modelId });
-              }}
-              style={{
-                padding: '8px',
-                borderRadius: '6px',
-                border: '1px solid #ddd',
-                fontSize: '0.9rem',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <button
+              onClick={handleClearChat}
+              style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'rgba(0,0,0,0.05)', color: '#666', border: '1px solid #ddd' }}
             >
-              <optgroup label="Google Gemini">
-                {availableModels.filter(m => m.provider === 'gemini').map(model => (
-                  <option key={model.id} value={`gemini:${model.id}`}>{model.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Anthropic Claude">
-                {availableModels.filter(m => m.provider === 'claude').map(model => (
-                  <option key={model.id} value={`claude:${model.id}`}>{model.name}</option>
-                ))}
-              </optgroup>
-            </select>
+              🗑️ Limpiar
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.9rem', color: '#666' }}>Modelo:</span>
+              <select
+                value={`${modelConfig.provider}:${modelConfig.modelId}`}
+                onChange={(e) => {
+                  const [provider, modelId] = e.target.value.split(':');
+                  setModelConfig({ provider, modelId });
+                }}
+                className="glass-select"
+              >
+                <optgroup label="Google Gemini">
+                  {availableModels.filter(m => m.provider === 'gemini').map(model => (
+                    <option key={model.id} value={`gemini:${model.id}`}>{model.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Anthropic Claude">
+                  {availableModels.filter(m => m.provider === 'claude').map(model => (
+                    <option key={model.id} value={`claude:${model.id}`}>{model.name}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
           </div>
         </div>
         <div className="chat-container">
