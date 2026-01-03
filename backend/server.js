@@ -830,30 +830,23 @@ app.get('/api/analytics/filters', async (req, res) => {
   try {
     console.log('[API] GET /api/analytics/filters');
 
-    // Obtenemos valores únicos para los filtros principales
+    // Función helper para obtener valores únicos (limitado a los primeros 10000 registros para velocidad)
+    const getDistinct = async (column) => {
+      const { data, error } = await supabase.from('ventas').select(column).limit(10000);
+      if (error) throw error;
+      return [...new Set(data.map(item => item[column]))].filter(Boolean).sort();
+    };
+
     const [canales, marcas, sucursales] = await Promise.all([
-      supabase.from('ventas').select('canal').distinct(),
-      supabase.from('ventas').select('marca').distinct(),
-      supabase.from('ventas').select('sucursal').distinct()
+      getDistinct('canal'),
+      getDistinct('marca'),
+      getDistinct('sucursal')
     ]);
 
-    // Supabase JS no soporta .distinct() directamente de forma eficiente a veces, 
-    // pero podemos hacer un select simplificado. Si fallara, usamos raw query o un select de todo (costoso).
-    // Alternativa: select('canal').then(...) y set.
-
-    const getDistinct = async (column) => {
-      const { data, error } = await supabase.from('ventas').select(column);
-      if (error) throw error;
-      return [...new Set(data.map(item => item[column]))].sort();
-    };
-
-    const filters = {
-      canales: await getDistinct('canal'),
-      marcas: await getDistinct('marca'),
-      sucursales: await getDistinct('sucursal')
-    };
-
-    res.json({ success: true, data: filters });
+    res.json({
+      success: true,
+      data: { canales, marcas, sucursales }
+    });
   } catch (error) {
     console.error('Error fetching filters:', error);
     res.status(500).json({ success: false, error: error.message });
