@@ -1087,32 +1087,32 @@ function App() {
                 <section style={{ marginBottom: '50px' }}>
                   <h2 style={{ fontSize: '1.8rem', marginBottom: '20px', color: '#1e293b' }}>Casos de Uso Reales</h2>
 
-                  <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '24px', borderRadius: '12px', marginBottom: '20px', color: 'white' }}>
-                    <h3 style={{ fontSize: '1.3rem', marginBottom: '12px' }}>Caso 1: Monitoreo Diario</h3>
-                    <p style={{ lineHeight: '1.8', marginBottom: '12px', opacity: 0.95 }}>
+                  <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '1.3rem', marginBottom: '12px', color: '#0f172a' }}>Caso 1: Monitoreo Diario</h3>
+                    <p style={{ lineHeight: '1.8', marginBottom: '12px', color: '#475569' }}>
                       Es lunes 8:00 AM. El jefe de canal quiere saber cómo fue el fin de semana.
                     </p>
-                    <ol style={{ marginLeft: '20px', lineHeight: '1.8', opacity: 0.95 }}>
+                    <ol style={{ marginLeft: '20px', lineHeight: '1.8', color: '#475569' }}>
                       <li>Abre Alquimia y ve dashboard con totales del fin de semana</li>
                       <li>Pregunta al AI: "¿Cómo fue el sábado vs domingo?"</li>
                       <li>AI compara y muestra que sábado vendió 30% más</li>
                       <li>Toma acción basada en insights</li>
                     </ol>
-                    <p style={{ marginTop: '12px', fontWeight: '600' }}>Tiempo total: 3 minutos</p>
+                    <p style={{ marginTop: '12px', fontWeight: '600', color: '#0f172a' }}>Tiempo total: 3 minutos</p>
                   </div>
 
-                  <div style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', padding: '24px', borderRadius: '12px', marginBottom: '20px', color: 'white' }}>
-                    <h3 style={{ fontSize: '1.3rem', marginBottom: '12px' }}>Caso 2: Análisis de Campaña</h3>
-                    <p style={{ lineHeight: '1.8', marginBottom: '12px', opacity: 0.95 }}>
+                  <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '1.3rem', marginBottom: '12px', color: '#0f172a' }}>Caso 2: Análisis de Campaña</h3>
+                    <p style={{ lineHeight: '1.8', marginBottom: '12px', color: '#475569' }}>
                       Marketing lanzó campaña de iPhone. ¿Funcionó?
                     </p>
-                    <ol style={{ marginLeft: '20px', lineHeight: '1.8', opacity: 0.95 }}>
+                    <ol style={{ marginLeft: '20px', lineHeight: '1.8', color: '#475569' }}>
                       <li>Filtra: Marca=Apple, Fecha=última semana</li>
                       <li>Ve que unidades subieron 50%</li>
                       <li>Pregunta: "¿En qué canal se vendió más iPhone?"</li>
                       <li>AI responde con desglose detallado</li>
                     </ol>
-                    <p style={{ marginTop: '12px', fontWeight: '600' }}>Insight: La campaña funcionó, especialmente en E-commerce</p>
+                    <p style={{ marginTop: '12px', fontWeight: '600', color: '#0f172a' }}>Insight: La campaña funcionó, especialmente en E-commerce</p>
                   </div>
                 </section>
 
@@ -1120,38 +1120,41 @@ function App() {
                 <section style={{ marginBottom: '50px' }}>
                   <h2 style={{ fontSize: '1.8rem', marginBottom: '20px', color: '#1e293b' }}>Tips y Mejores Prácticas</h2>
 
-                  <div style={{ background: '#fef3c7', padding: '20px', borderRadius: '12px', marginBottom: '15px', border: '2px solid #fbbf24' }}>
-                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#92400e' }}>Tip: Usa filtros combinados</p>
-                    <p style={{ lineHeight: '1.8', color: '#78350f' }}>
+                  <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '15px', border: '1px solid #e2e8f0' }}>
+                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#0f172a' }}>Tip: Usa filtros combinados</p>
+                    <p style={{ lineHeight: '1.8', color: '#475569' }}>
                       Combina múltiples filtros para análisis profundos. Ejemplo: "Ventas de iPhone en E-commerce en Santiago durante Black Friday"
                     </p>
                   </div>
 
-                  <div style={{ background: '#dbeafe', padding: '20px', borderRadius: '12px', marginBottom: '15px', border: '2px solid #3b82f6' }}>
-                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#1e3a8a' }}>Tip: Búsqueda inteligente</p>
-                    <p style={{ lineHeight: '1.8', color: '#1e40af' }}>
+                  <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '15px', border: '1px solid #e2e8f0' }}>
+                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#0f172a' }}>Tip: Búsqueda inteligente</p>
+                    <p style={{ lineHeight: '1.8', color: '#475569' }}>
                       Con +100 sucursales, usa la búsqueda. Escribe "Puente" y aparecerá "CAC Puente Alto" instantáneamente.
                     </p>
                   </div>
 
-                  <div style={{ background: '#dcfce7', padding: '20px', borderRadius: '12px', border: '2px solid #22c55e' }}>
-                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#14532d' }}>Tip: Sé específico con el AI</p>
-                    <p style={{ lineHeight: '1.8', color: '#15803d' }}>
+                  <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', color: '#0f172a' }}>Tip: Sé específico con el AI</p>
+                    <p style={{ lineHeight: '1.8', color: '#475569' }}>
                       En lugar de "productos menos vendidos", prueba "productos de E-commerce del 6 de enero ordenados por cantidad ascendente"
                     </p>
                   </div>
                 </section>
 
                 {/* Soporte */}
-                <section style={{ background: '#f1f5f9', padding: '30px', borderRadius: '12px', textAlign: 'center' }}>
+                <section style={{ background: '#f8fafc', padding: '30px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
                   <h2 style={{ fontSize: '1.5rem', marginBottom: '15px', color: '#0f172a' }}>¿Necesitas ayuda?</h2>
                   <p style={{ lineHeight: '1.8', color: '#475569', marginBottom: '20px' }}>
                     Esta guía se actualiza automáticamente con cada nueva funcionalidad. Si tienes preguntas específicas,
                     prueba preguntarle al AI en la sección de Chat.
                   </p>
-                  <div style={{ display: 'inline-block', background: '#667eea', color: 'white', padding: '12px 24px', borderRadius: '8px', fontWeight: '600' }}>
+                  <button
+                    onClick={() => setActiveSection('chats')}
+                    style={{ background: '#1e40af', color: 'white', padding: '12px 24px', borderRadius: '8px', fontWeight: '600', border: 'none', cursor: 'pointer' }}
+                  >
                     Ir a Chat
-                  </div>
+                  </button>
                 </section>
               </div>
             </div>
