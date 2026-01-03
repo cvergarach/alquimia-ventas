@@ -25,16 +25,15 @@ function App() {
   const [modelConfig, setModelConfig] = useState({ provider: 'gemini', modelId: 'gemini-2.5-flash' })
   const [kpis, setKpis] = useState({ total_unidades: 0, total_ingreso: 0, total_margen: 0, margenPct: 0 })
   const [chartsData, setChartsData] = useState({ trend: [], channels: [], brands: [] })
+  const [activeSection, setActiveSection] = useState('dashboard') // dashboard, chats, data, projects
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const messagesEndRef = useRef(null)
 
   const availableModels = [
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini' },
-    { id: 'claude-opus-4-5', name: 'Claude 4.5 Opus', provider: 'claude' },
-    { id: 'claude-sonnet-4-5', name: 'Claude 4.5 Sonnet', provider: 'claude' },
-    { id: 'claude-haiku-4-5', name: 'Claude 4.5 Haiku', provider: 'claude' },
-    { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', provider: 'claude' },
-    { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', provider: 'claude' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini', icon: '⚡' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini', icon: '🧠' },
+    { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', provider: 'claude', icon: '🎭' },
+    { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', provider: 'claude', icon: '🕊️' },
   ]
 
   const scrollToBottom = () => {
@@ -208,306 +207,314 @@ function App() {
 
   const COLORS = ['#667eea', '#764ba2', '#4c51bf', '#6b46c1', '#5a67d8', '#805ad5'];
 
+  const formatCurrency = (val) => {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(val)
+  }
+
   return (
-    <div className="container">
-      {/* Header */}
-      <div className="header">
-        <h1>🚀 Alquimia Datalive - MVP</h1>
-        <p>Conversaciones inteligentes con tus datos usando IA + MCP</p>
-      </div>
+    <div className="layout-wrapper">
+      {/* Sidebar Navigation */}
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-logo">
+          <div className="user-avatar" style={{ background: '#667eea', color: 'white' }}>AL</div>
+          <span style={{ fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.5px' }}>DATALIVE</span>
+        </div>
 
-      {/* KPI Dashboard */}
-      <div className="dashboard-summary">
-        <div className="kpi-card glass">
-          <h3>Total Unidades</h3>
-          <p className="kpi-value">{formatNumber(kpis.total_unidades)}</p>
-          <span className="kpi-label">Procesado al 100%</span>
-        </div>
-        <div className="kpi-card glass">
-          <h3>Ingreso Total</h3>
-          <p className="kpi-value">${formatNumber(kpis.total_ingreso)}</p>
-          <span className="kpi-label">CLP</span>
-        </div>
-        <div className="kpi-card glass">
-          <h3>Margen Total</h3>
-          <p className="kpi-value" style={{ color: kpis.total_margen >= 0 ? '#48bb78' : '#f56565' }}>
-            ${formatNumber(kpis.total_margen)}
-          </p>
-          <span className="kpi-label">CLP</span>
-        </div>
-        <div className="kpi-card glass">
-          <h3>% Margen</h3>
-          <p className="kpi-value">{kpis.margenPct.toFixed(1)}%</p>
-          <span className="kpi-label">Promedio Global</span>
-        </div>
-      </div>
-
-      {/* Temporal Trend */}
-      <div className="card glass" style={{ marginBottom: '30px' }}>
-        <h2>📈 Tendencia de Ventas Diarias</h2>
-        <div style={{ width: '100%', height: 300 }}>
-          <ResponsiveContainer>
-            <LineChart data={chartsData.trend}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-              <XAxis dataKey="date" fontSize={10} axisLine={false} tickLine={false} />
-              <YAxis fontSize={12} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-              <Line type="monotone" dataKey="value" stroke="#667eea" strokeWidth={4} dot={{ r: 4, fill: '#667eea', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8, strokeWidth: 0 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Visual Analytics */}
-      <div className="grid">
-        <div className="card glass">
-          <h2>📊 Ventas por Canal</h2>
-          <div style={{ width: '100%', height: 300 }}>
-            <ResponsiveContainer>
-              <BarChart data={chartsData.channels}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                <XAxis dataKey="name" fontSize={12} axisLine={false} tickLine={false} />
-                <YAxis fontSize={12} axisLine={false} tickLine={false} />
-                <Tooltip cursor={{ fill: 'rgba(102, 126, 234, 0.05)' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                <Bar dataKey="value" fill="#667eea" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        <nav className="sidebar-nav">
+          <div className={`nav-item ${activeSection === 'dashboard' ? 'active' : ''}`} onClick={() => { setActiveSection('dashboard'); setIsSidebarOpen(false); }}>
+            <span>📊</span> Dashboard
           </div>
-        </div>
-        <div className="card glass">
-          <h2>🏷️ Distribución por Marca</h2>
-          <div style={{ width: '100%', height: 300 }}>
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={chartsData.brands}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={100}
-                  paddingAngle={8}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {chartsData.brands.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(255,255,255,0.5)" strokeWidth={2} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className={`nav-item ${activeSection === 'projects' ? 'active' : ''}`} onClick={() => { setActiveSection('projects'); setIsSidebarOpen(false); }}>
+            <span>📁</span> Proyectos
           </div>
-        </div>
-      </div>
-
-      {/* Upload CSV */}
-      <div className="card">
-        <h2>📤 Cargar Datos CSV</h2>
-        <div className="file-input">
-          <input
-            type="file"
-            accept=".csv"
-            onChange={handleFileUpload}
-          />
-          <button>Seleccionar Archivo</button>
-        </div>
-        {uploadStatus && (
-          <div className={uploadStatus.type === 'error' ? 'error' : uploadStatus.type === 'success' ? 'success' : 'loading'}>
-            {uploadStatus.message}
+          <div className={`nav-item ${activeSection === 'data' ? 'active' : ''}`} onClick={() => { setActiveSection('data'); setIsSidebarOpen(false); }}>
+            <span>💾</span> Datos
           </div>
-        )}
-      </div>
+          <div className={`nav-item ${activeSection === 'chats' ? 'active' : ''}`} onClick={() => { setActiveSection('chats'); setIsSidebarOpen(false); }}>
+            <span>💬</span> Chats
+          </div>
 
-      {/* Tablas de datos */}
-      <div className="grid">
-        {/* Tabla Supabase */}
-        <div className="card glass">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h2>📊 Ventas ({totalVentasCount})</h2>
-            <div className="pagination">
-              <button onClick={() => loadVentas(currentPage - 1)} disabled={currentPage === 1}>«</button>
-              <span>{currentPage} / {totalPages}</span>
-              <button onClick={() => loadVentas(currentPage + 1)} disabled={currentPage === totalPages}>»</button>
+          <div className="sidebar-section-title">Administración</div>
+          <div className={`nav-item ${activeSection === 'users' ? 'active' : ''}`} onClick={() => { setActiveSection('users'); setIsSidebarOpen(false); }}>
+            <span>👥</span> Usuarios
+          </div>
+          <div className={`nav-item ${activeSection === 'settings' ? 'active' : ''}`} onClick={() => { setActiveSection('settings'); setIsSidebarOpen(false); }}>
+            <span>⚙️</span> Configuración
+          </div>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="user-profile">
+            <div className="user-avatar">CV</div>
+            <div className="user-info">
+              <div className="user-name">cvergarach@gmail.com</div>
+              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>Admin</div>
             </div>
           </div>
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Día</th>
-                  <th>Canal</th>
-                  <th>Marca</th>
-                  <th>Modelo</th>
-                  <th>Cantidad</th>
-                  <th>Ingreso</th>
-                  <th>Margen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ventas.slice(0, 50).map((venta, idx) => (
-                  <tr key={idx}>
-                    <td>{venta.dia}</td>
-                    <td>{venta.canal}</td>
-                    <td>{venta.marca}</td>
-                    <td style={{ fontSize: '0.75rem' }}>{venta.modelo}</td>
-                    <td>{venta.cantidad}</td>
-                    <td>${formatNumber(venta.ingreso_neto)}</td>
-                    <td style={{ color: venta.margen >= 0 ? 'green' : 'red' }}>
-                      ${formatNumber(venta.margen)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="nav-item" style={{ padding: '8px 0', fontSize: '0.8rem' }}>
+            <span>🚪</span> Cerrar Sesión
           </div>
         </div>
+      </aside>
 
-        {/* Tabla Google Sheets */}
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h2>📈 Google Sheets</h2>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {['Metas', 'Forecast', 'Comisiones', 'Catalogo'].map(sheet => (
-                <button
-                  key={sheet}
-                  onClick={() => loadSheetsData(sheet)}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '0.8rem',
-                    background: activeSheet === sheet ? '#667eea' : '#e0e0e0',
-                    color: activeSheet === sheet ? 'white' : '#333'
-                  }}
-                >
-                  {sheet}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="table-container">
-            {sheetsData.length > 0 ? (
-              <table>
-                <thead>
-                  <tr>
-                    {Object.keys(sheetsData[0]).map((key, idx) => (
-                      <th key={idx}>{key}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sheetsData.slice(0, 50).map((row, idx) => (
-                    <tr key={idx}>
-                      {Object.values(row).map((value, i) => (
-                        <td key={i}>{value}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="loading">
-                No hay datos disponibles. Configura tu Google Sheet en el backend.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Chat con IA */}
-      <div className="card chat-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-          <h2>💬 Chat con IA + MCP</h2>
+      {/* Main Content Container */}
+      <main className="main-container">
+        <header className="top-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <button
-              onClick={handleClearChat}
-              style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'rgba(0,0,0,0.05)', color: '#666', border: '1px solid #ddd' }}
-            >
-              🗑️ Limpiar
+            <button className="menu-toggle" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+              {isSidebarOpen ? '✕' : '☰'}
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '0.9rem', color: '#666' }}>Modelo:</span>
-              <select
-                value={`${modelConfig.provider}:${modelConfig.modelId}`}
-                onChange={(e) => {
-                  const [provider, modelId] = e.target.value.split(':');
-                  setModelConfig({ provider, modelId });
-                }}
-                className="glass-select"
-              >
-                <optgroup label="Google Gemini">
-                  {availableModels.filter(m => m.provider === 'gemini').map(model => (
-                    <option key={model.id} value={`gemini:${model.id}`}>{model.name}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Anthropic Claude">
-                  {availableModels.filter(m => m.provider === 'claude').map(model => (
-                    <option key={model.id} value={`claude:${model.id}`}>{model.name}</option>
-                  ))}
-                </optgroup>
-              </select>
+            <div>
+              <div className="top-bar-title">
+                {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}
+              </div>
+              <div className="top-bar-subtitle">Bienvenido al espacio de trabajo de Alquimia</div>
             </div>
           </div>
-        </div>
-        <div className="chat-container">
-          <div className="chat-messages">
-            {chatMessages.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#666', padding: '40px' }}>
-                <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>👋 ¡Hola! Soy tu asistente de datos</p>
-                <p>Puedo ayudarte a analizar tus ventas de Supabase y datos de Google Sheets.</p>
-                <p style={{ marginTop: '15px', fontSize: '0.9rem', fontStyle: 'italic' }}>
-                  Ejemplos: "¿Cuántas unidades de HONOR vendimos?", "Muéstrame el top 10 por margen", "Compara ventas vs forecast"
-                </p>
-              </div>
-            ) : (
-              chatMessages.map((msg, idx) => (
-                <div key={idx} className={`message ${msg.role}`}>
-                  <div className="message-role">
-                    {msg.role === 'user' ? '👤 Tú' : '🤖 Asistente'}
-                    {msg.toolsUsed && msg.toolsUsed.length > 0 && (
-                      <span className="badge" style={{ marginLeft: '10px' }}>
-                        MCP: {msg.toolsUsed.join(', ')}
-                      </span>
-                    )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ fontSize: '1.2rem', cursor: 'pointer' }}>🔔</div>
+          </div>
+        </header>
+
+        <div className="content-area">
+          {activeSection === 'dashboard' && (
+            <>
+              {/* KPI Summary */}
+              <div className="dashboard-summary">
+                <div className="kpi-card">
+                  <div className="kpi-card-content">
+                    <div className="kpi-label">Total Unidades</div>
+                    <div className="kpi-value">{formatNumber(kpis.total_unidades)}</div>
+                    <div className="trend-badge trend-up">+0%</div>
                   </div>
-                  <div className="message-content">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {msg.content}
-                    </ReactMarkdown>
-                    {msg.role === 'assistant' && (
-                      <button
-                        className="copy-button"
-                        onClick={() => copyToClipboard(msg.content)}
-                        title="Copiar para WhatsApp"
-                      >
-                        📋 Copiar
-                      </button>
-                    )}
+                  <div className="kpi-icon">📦</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-card-content">
+                    <div className="kpi-label">Ingreso Bruto</div>
+                    <div className="kpi-value">{formatCurrency(kpis.total_ingreso)}</div>
+                    <div className="trend-badge trend-up">+0%</div>
+                  </div>
+                  <div className="kpi-icon">💰</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-card-content">
+                    <div className="kpi-label">Margen Neto</div>
+                    <div className="kpi-value">{formatCurrency(kpis.total_margen)}</div>
+                    <div className="trend-badge trend-up">+0%</div>
+                  </div>
+                  <div className="kpi-icon">📈</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-card-content">
+                    <div className="kpi-label">Eficiencia (Mgn%)</div>
+                    <div className="kpi-value">{kpis.margenPct.toFixed(1)}%</div>
+                    <div className="trend-badge trend-up">+0%</div>
+                  </div>
+                  <div className="kpi-icon">🎯</div>
+                </div>
+              </div>
+
+              {/* Charts & Widgets */}
+              <div className="grid">
+                <div className="card">
+                  <h2>Tendencia de Ventas (u)</h2>
+                  <div style={{ height: '300px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartsData.trend}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="date" hide />
+                        <YAxis hide />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="value" stroke="#667eea" strokeWidth={3} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
-              ))
-            )}
-            {loading && (
-              <div className="message assistant">
-                <div className="loading">⏳ Pensando y consultando datos...</div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
 
-          <div className="chat-input">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Haz una pregunta sobre tus datos..."
-              disabled={loading}
-            />
-            <button onClick={handleSendMessage} disabled={loading || !inputMessage.trim()}>
-              {loading ? '⏳' : '🚀'} Enviar
-            </button>
-          </div>
+                <div className="card">
+                  <h2>Acciones Rápidas</h2>
+                  <div className="quick-actions">
+                    <div className="action-btn" onClick={() => document.getElementById('dash-file-upload').click()}>
+                      + Cargar Ventas CSV
+                    </div>
+                    <input
+                      id="dash-file-upload"
+                      type="file"
+                      style={{ display: 'none' }}
+                      onChange={handleFileUpload}
+                      accept=".csv"
+                    />
+                    <div className="action-btn" onClick={() => setActiveSection('chats')}>
+                      Consultar IA
+                    </div>
+                    <div className="action-btn" onClick={() => window.open('https://docs.google.com/spreadsheets/d/' + import.meta.env.VITE_GOOGLE_SHEET_ID)}>
+                      Ver Metas (Sheets)
+                    </div>
+                    <div className="action-btn" onClick={loadAnalytics}>
+                      Refrescar Datos
+                    </div>
+                  </div>
+                  {uploadStatus && (
+                    <div className={`status ${uploadStatus.type}`} style={{ marginTop: '15px' }}>
+                      {uploadStatus.message}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="card">
+                <h2>Actividad Reciente</h2>
+                <div className="activity-list">
+                  <div className="activity-item">
+                    <div className="activity-text">Archivo de ventas "Diciembre_2025.csv" procesado con éxito.</div>
+                    <div className="activity-time">Hoy, 14:30</div>
+                  </div>
+                  <div className="activity-item">
+                    <div className="activity-text">Actualización de Metas 2026 sincronizada desde Google Sheets.</div>
+                    <div className="activity-time">Ayer, 09:15</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeSection === 'chats' && (
+            <div className="card chat-section">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h2>💬 Asistente Alquimia Datalive</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <button onClick={handleClearChat} style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#f7fafc', color: '#666', border: '1px solid #e2e8f0' }}>
+                    Limpiar
+                  </button>
+                  <select
+                    value={`${modelConfig.provider}:${modelConfig.modelId}`}
+                    onChange={(e) => {
+                      const [provider, modelId] = e.target.value.split(':');
+                      setModelConfig({ provider, modelId });
+                    }}
+                    className="glass-select"
+                  >
+                    {availableModels.map(model => (
+                      <option key={model.id} value={`${model.provider}:${model.id}`}>{model.icon} {model.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="chat-container">
+                <div className="chat-messages">
+                  {chatMessages.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#666', padding: '60px' }}>
+                      <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>👋 ¿Cómo puedo ayudarte hoy?</p>
+                      <p>Consulta sobre ventas, márgenes o metas directamente.</p>
+                    </div>
+                  ) : (
+                    chatMessages.map((msg, idx) => (
+                      <div key={idx} className={`message ${msg.role}`}>
+                        <div className="message-role">
+                          {msg.role === 'user' ? 'Tú' : '🤖 Datalive AI'}
+                          {msg.toolsUsed && <span className="badge" style={{ marginLeft: '10px' }}>{msg.toolsUsed[0]}</span>}
+                        </div>
+                        <div className="message-content">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                          {msg.role === 'assistant' && (
+                            <button className="copy-button" onClick={() => copyToClipboard(msg.content)}>📋 Copiar para WhatsApp</button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {loading && <div className="message assistant"><div className="loading">Consultando bases de datos...</div></div>}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                <div className="chat-input">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder="Escribe tu consulta..."
+                    disabled={loading}
+                  />
+                  <button onClick={handleSendMessage} disabled={loading || !inputMessage.trim()}>
+                    Enviar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'data' && (
+            <div className="grid">
+              <div className="card" style={{ gridColumn: '1/-1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h2>📦 Registro de Ventas (Supabase)</h2>
+                  <div className="pagination">
+                    <button onClick={() => loadVentas(currentPage - 1)} disabled={currentPage === 1}>←</button>
+                    <span>Pág {currentPage} de {totalPages}</span>
+                    <button onClick={() => loadVentas(currentPage + 1)} disabled={currentPage === totalPages}>→</button>
+                  </div>
+                </div>
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Día</th><th>Canal</th><th>Marca</th><th>Modelo</th><th>Q</th><th>Ingreso</th><th>Margen</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ventas.map((venta, idx) => (
+                        <tr key={idx}>
+                          <td>{venta.dia}</td>
+                          <td>{venta.canal}</td>
+                          <td>{venta.marca}</td>
+                          <td style={{ fontSize: '0.7rem' }}>{venta.modelo}</td>
+                          <td>{venta.cantidad}</td>
+                          <td>${formatNumber(venta.ingreso_neto)}</td>
+                          <td style={{ color: venta.margen >= 0 ? 'green' : 'red' }}>${formatNumber(venta.margen)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="card" style={{ gridColumn: '1/-1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h2>📈 Tablas de Soporte (Google Sheets)</h2>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {['Metas', 'Forecast', 'Comisiones'].map(sheet => (
+                      <button
+                        key={sheet}
+                        onClick={() => { setActiveSheet(sheet); loadSheetsData(sheet); }}
+                        style={{ background: activeSheet === sheet ? '#667eea' : '#f7fafc', color: activeSheet === sheet ? 'white' : '#666', border: '1px solid #e2e8f0', padding: '6px 12px', fontSize: '0.8rem' }}
+                      >
+                        {sheet}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="table-container">
+                  {sheetsData.length > 0 ? (
+                    <table>
+                      <thead>
+                        <tr>{Object.keys(sheetsData[0]).map((h, i) => <th key={i}>{h}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {sheetsData.slice(0, 30).map((row, i) => (
+                          <tr key={i}>{Object.values(row).map((v, j) => <td key={j}>{v}</td>)}</tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : <div className="loading">Cargando datos de Sheets...</div>}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   )
 }
