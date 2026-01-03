@@ -59,14 +59,21 @@ body {
   height: 32px;
 }
 
+.sidebar-logo .brand-name {
+  white-space: nowrap;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
 .ia-box {
   background: #3b5998;
   color: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 4px;
-  font-size: 0.9em;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 2px;
+  font-size: 0.85em;
   display: inline-block;
+  vertical-align: middle;
 }
 
 .sidebar-nav {
