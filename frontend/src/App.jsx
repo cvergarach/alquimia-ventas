@@ -448,10 +448,25 @@ function App() {
               <div className="card" style={{ gridColumn: '1/-1' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                   <h2>📦 Registro de Ventas (Supabase)</h2>
-                  <div className="pagination">
-                    <button onClick={() => loadVentas(currentPage - 1)} disabled={currentPage === 1}>←</button>
-                    <span>Pág {currentPage} de {totalPages}</span>
-                    <button onClick={() => loadVentas(currentPage + 1)} disabled={currentPage === totalPages}>→</button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <button
+                      onClick={() => document.getElementById('data-file-upload').click()}
+                      style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                      🚀 Subir CSV
+                    </button>
+                    <input
+                      id="data-file-upload"
+                      type="file"
+                      style={{ display: 'none' }}
+                      onChange={handleFileUpload}
+                      accept=".csv"
+                    />
+                    <div className="pagination">
+                      <button onClick={() => loadVentas(currentPage - 1)} disabled={currentPage === 1}>←</button>
+                      <span>Pág {currentPage} de {totalPages}</span>
+                      <button onClick={() => loadVentas(currentPage + 1)} disabled={currentPage === totalPages}>→</button>
+                    </div>
                   </div>
                 </div>
                 <div className="table-container">
