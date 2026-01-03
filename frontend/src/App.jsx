@@ -82,8 +82,10 @@ function App() {
 
   const handleSaveTool = async (tool) => {
     try {
-      // Si el tool viene como string de JSON en parameters, parsearlo
-      const payload = { ...tool }
+      // Limpiar payload para evitar errores en Supabase
+      const { created_at, ...cleanTool } = tool
+      const payload = { ...cleanTool }
+
       if (typeof payload.parameters === 'string') {
         try {
           payload.parameters = JSON.parse(payload.parameters)
@@ -101,7 +103,8 @@ function App() {
       }
     } catch (error) {
       console.error('Error saving tool:', error)
-      alert('Error al guardar la herramienta')
+      const msg = error.response?.data?.error || error.message
+      alert(`Error al guardar la herramienta: ${msg}`)
     }
   }
 

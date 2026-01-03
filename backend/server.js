@@ -1075,9 +1075,13 @@ app.get('/api/settings/tools', async (req, res) => {
       .from('ai_tools')
       .select('*')
       .order('name');
-    if (error) throw error;
+    if (error) {
+      console.error('[Settings] Error fetching tools:', error);
+      return res.status(500).json({ success: false, error: error.message, details: error });
+    }
     res.json({ success: true, data });
   } catch (error) {
+    console.error('[Settings] Catch error fetching tools:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -1086,13 +1090,20 @@ app.get('/api/settings/tools', async (req, res) => {
 app.post('/api/settings/tools', async (req, res) => {
   try {
     const tool = req.body;
+    console.log('[Settings] Upserting tool:', tool.name);
+
     const { data, error } = await supabase
       .from('ai_tools')
       .upsert(tool)
       .select();
-    if (error) throw error;
+
+    if (error) {
+      console.error('[Settings] Error saving tool:', error);
+      return res.status(500).json({ success: false, error: error.message, details: error });
+    }
     res.json({ success: true, data: data[0] });
   } catch (error) {
+    console.error('[Settings] Catch error saving tool:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -1105,9 +1116,13 @@ app.delete('/api/settings/tools/:id', async (req, res) => {
       .from('ai_tools')
       .delete()
       .eq('id', id);
-    if (error) throw error;
+    if (error) {
+      console.error('[Settings] Error deleting tool:', error);
+      return res.status(500).json({ success: false, error: error.message });
+    }
     res.json({ success: true, message: 'Herramienta eliminada' });
   } catch (error) {
+    console.error('[Settings] Catch error deleting tool:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

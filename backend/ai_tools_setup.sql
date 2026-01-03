@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS ai_tools (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Asegurar que la columna sql_template existe (por si la tabla ya fue creada antes)
+ALTER TABLE ai_tools ADD COLUMN IF NOT EXISTS sql_template TEXT;
+
 -- Habilitar RLS
 ALTER TABLE ai_tools ENABLE ROW LEVEL SECURITY;
 
