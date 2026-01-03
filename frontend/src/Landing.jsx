@@ -3,150 +3,255 @@ import './Landing.css'
 
 function Landing({ onLogin }) {
     return (
-        <div className="landing-container">
+        <div className="landing">
             {/* Hero Section */}
-            <section className="hero">
-                <div className="hero-content">
-                    <div className="logo-large">A</div>
-                    <h1 className="hero-title">ALQUIMIA</h1>
-                    <p className="hero-subtitle">Dashboard Inteligente de Análisis de Ventas</p>
-                    <p className="hero-description">
-                        Combina visualización de datos en tiempo real con inteligencia artificial conversacional
-                        para tomar decisiones estratégicas basadas en datos.
+            <section className="hero-section">
+                <div className="hero-container">
+                    <h1 className="hero-headline">
+                        ¿Cuántas horas perdiste esta semana<br />
+                        interpretando reportes de ventas?
+                    </h1>
+
+                    <p className="hero-subheadline">
+                        Alquimia convierte tus datos de ventas en decisiones estratégicas.<br />
+                        Pregunta en lenguaje natural, obtén respuestas ejecutivas en segundos.
                     </p>
-                    <button className="cta-button" onClick={onLogin}>
-                        Ingresar al Dashboard →
-                    </button>
-                </div>
-            </section>
 
-            {/* Features Section */}
-            <section className="features">
-                <div className="container">
-                    <h2 className="section-title">Funcionalidades Principales</h2>
+                    <div className="hero-cta">
+                        <button className="cta-primary" onClick={onLogin}>
+                            Analiza tus ventas ahora
+                        </button>
+                        <a href="#demo" className="cta-secondary">Ver demo de 2 minutos</a>
+                    </div>
 
-                    <div className="features-grid">
-                        <div className="feature-card">
-                            <div className="feature-icon">📊</div>
-                            <h3>Dashboard Visual Interactivo</h3>
-                            <p>Métricas clave (KPIs) en tarjetas visuales con gráficos de tendencias, canales y marcas. Actualización automática con filtros.</p>
-                            <ul className="feature-list">
-                                <li>Total Unidades vendidas</li>
-                                <li>Ingreso Bruto</li>
-                                <li>Costo Total</li>
-                                <li>Margen Neto</li>
-                            </ul>
-                        </div>
-
-                        <div className="feature-card">
-                            <div className="feature-icon">🔍</div>
-                            <h3>Filtros Avanzados</h3>
-                            <p>Sistema de filtros buscables para analizar exactamente lo que necesitas.</p>
-                            <ul className="feature-list">
-                                <li>Rango de fechas personalizado</li>
-                                <li>Canal (E-commerce, tiendas, etc.)</li>
-                                <li>Marca (Apple, Samsung, etc.)</li>
-                                <li>Sucursal (+100 sucursales)</li>
-                            </ul>
-                        </div>
-
-                        <div className="feature-card">
-                            <div className="feature-icon">💬</div>
-                            <h3>Chat con IA</h3>
-                            <p>Pregunta en lenguaje natural y obtén insights ejecutivos al instante.</p>
-                            <ul className="feature-list">
-                                <li>"¿Cómo voy hoy?"</li>
-                                <li>"Qué canal vende más"</li>
-                                <li>"Top 10 SKUs del mes"</li>
-                                <li>"Análisis de rentabilidad"</li>
-                            </ul>
-                        </div>
-
-                        <div className="feature-card">
-                            <div className="feature-icon">📄</div>
-                            <h3>Carga Masiva CSV</h3>
-                            <p>Importa miles de registros desde Excel/CSV con procesamiento automático.</p>
-                            <ul className="feature-list">
-                                <li>+55,000 registros sin problemas</li>
-                                <li>Formato chileno automático</li>
-                                <li>Procesamiento en lotes</li>
-                                <li>Velocidad máxima</li>
-                            </ul>
+                    <div className="hero-visual">
+                        <div className="dashboard-preview">
+                            <div className="kpi-row">
+                                <div className="kpi-mini">
+                                    <span className="kpi-label">Total Unidades</span>
+                                    <span className="kpi-value">12,847</span>
+                                </div>
+                                <div className="kpi-mini">
+                                    <span className="kpi-label">Ingreso Bruto</span>
+                                    <span className="kpi-value">$285M</span>
+                                </div>
+                                <div className="kpi-mini">
+                                    <span className="kpi-label">Margen Neto</span>
+                                    <span className="kpi-value">$42M</span>
+                                </div>
+                            </div>
+                            <div className="chat-bubble">
+                                <div className="chat-question">¿Cómo voy hoy?</div>
+                                <div className="chat-answer">
+                                    Hoy llevas 847 unidades vendidas, 18% más que ayer.
+                                    E-commerce lidera con 52% del total...
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Use Cases Section */}
-            <section className="use-cases">
-                <div className="container">
-                    <h2 className="section-title">Casos de Uso Reales</h2>
+            {/* El Problema Invisible */}
+            <section className="problem-section">
+                <div className="content-container">
+                    <h2 className="section-title">
+                        El lunes a las 8 AM, no deberías estar armando Excel
+                    </h2>
 
-                    <div className="use-cases-grid">
-                        <div className="use-case">
-                            <h3>⏱️ Monitoreo Diario</h3>
-                            <p className="use-case-scenario">Es lunes 8:00 AM. El jefe de canal quiere saber cómo fue el fin de semana.</p>
-                            <ol className="use-case-steps">
-                                <li>Abre Alquimia y ve totales del fin de semana</li>
-                                <li>Pregunta: "¿Cómo fue el sábado vs domingo?"</li>
-                                <li>AI compara y muestra que sábado vendió 30% más</li>
-                                <li>Toma acción basada en insights</li>
-                            </ol>
-                            <p className="use-case-time">⚡ Tiempo total: 3 minutos</p>
+                    <div className="problem-grid">
+                        <div className="problem-stat">
+                            <p className="stat-number">5 horas/semana</p>
+                            <p className="stat-text">filtrando datos manualmente</p>
                         </div>
+                        <div className="problem-stat">
+                            <p className="stat-number">Decisiones basadas</p>
+                            <p className="stat-text">en reportes de hace 2 días</p>
+                        </div>
+                        <div className="problem-stat">
+                            <p className="stat-number">Insights perdidos</p>
+                            <p className="stat-text">entre miles de filas</p>
+                        </div>
+                    </div>
 
-                        <div className="use-case">
-                            <h3>📈 Análisis de Campaña</h3>
-                            <p className="use-case-scenario">Marketing lanzó campaña de iPhone. ¿Funcionó?</p>
-                            <ol className="use-case-steps">
-                                <li>Filtra: Marca=Apple, Fecha=última semana</li>
-                                <li>Ve que unidades subieron 50%</li>
-                                <li>Pregunta: "¿En qué canal se vendió más?"</li>
-                                <li>AI responde con desglose detallado</li>
-                            </ol>
-                            <p className="use-case-time">✅ Resultado: Campaña exitosa en E-commerce</p>
+                    <p className="problem-closer">
+                        Mientras armas reportes, tus competidores ya tomaron la decisión.
+                    </p>
+                </div>
+            </section>
+
+            {/* Lo Que Realmente Obtienes */}
+            <section className="results-section">
+                <div className="content-container">
+                    <div className="result-card">
+                        <div className="result-content">
+                            <h3>De "necesito el reporte" a "ya tomé la decisión"</h3>
+                            <p>
+                                Aplica filtros en tiempo real: iPhone + E-commerce + Última semana.<br />
+                                Ve el resultado en 3 segundos, no en 3 horas.
+                            </p>
+                        </div>
+                        <div className="result-visual">
+                            <div className="filter-demo">
+                                <div className="filter-bar">
+                                    <span className="filter-item">Marca: Apple</span>
+                                    <span className="filter-item">Canal: E-commerce</span>
+                                    <span className="filter-item">Fecha: Última semana</span>
+                                </div>
+                                <div className="result-instant">
+                                    <span className="result-label">Resultado instantáneo</span>
+                                    <span className="result-number">2,847 unidades • $64M</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="result-card reverse">
+                        <div className="result-content">
+                            <h3>Habla con tus datos como hablarías con tu analista senior</h3>
+                            <p>
+                                Pregunta: "¿Qué canal vendió más en Black Friday?"<br />
+                                El AI analiza +55,000 registros y te da la respuesta ejecutiva.
+                            </p>
+                        </div>
+                        <div className="result-visual">
+                            <div className="chat-demo">
+                                <div className="chat-msg user">¿Qué canal vendió más en Black Friday?</div>
+                                <div className="chat-msg ai">
+                                    E-commerce lideró con 8,234 unidades (62% del total).
+                                    Tiendas físicas: 3,891 unidades. Distribuidores: 1,023 unidades.
+                                    Margen promedio E-commerce: 18.5%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="result-card">
+                        <div className="result-content">
+                            <h3>Sabe más de tu negocio el lunes que el viernes</h3>
+                            <p>
+                                Dashboard en vivo. Actualización automática. Cero espera.<br />
+                                Margen neto, costos, rentabilidad: todo calculado.
+                            </p>
+                        </div>
+                        <div className="result-visual">
+                            <div className="live-dashboard">
+                                <div className="live-indicator">
+                                    <span className="pulse"></span>
+                                    Actualizado hace 2 segundos
+                                </div>
+                                <div className="metric-row">
+                                    <div className="metric">
+                                        <span>Margen Neto</span>
+                                        <strong>$42.8M</strong>
+                                    </div>
+                                    <div className="metric">
+                                        <span>Eficiencia</span>
+                                        <strong>15.2%</strong>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Tips Section */}
-            <section className="tips">
-                <div className="container">
-                    <h2 className="section-title">Tips y Mejores Prácticas</h2>
+            {/* Por Qué Funciona */}
+            <section className="why-section">
+                <div className="content-container">
+                    <h2 className="section-title">La inteligencia que no ves</h2>
 
-                    <div className="tips-grid">
-                        <div className="tip">
-                            <h4>💡 Usa filtros combinados</h4>
-                            <p>Combina múltiples filtros para análisis profundos. Ejemplo: "Ventas de iPhone en E-commerce en Santiago durante Black Friday"</p>
+                    <div className="why-list">
+                        <div className="why-item">
+                            <h4>Procesamiento masivo invisible</h4>
+                            <p>
+                                Carga 55,000+ registros mientras tomas café.
+                                Procesamiento paralelo optimizado.
+                            </p>
                         </div>
 
-                        <div className="tip">
-                            <h4>🔎 Búsqueda inteligente</h4>
-                            <p>Con +100 sucursales, usa la búsqueda. Escribe "Puente" y aparecerá "CAC Puente Alto" instantáneamente.</p>
+                        <div className="why-item">
+                            <h4>Comprensión del contexto chileno</h4>
+                            <p>
+                                Reconoce $1.234,56 automáticamente. Normaliza nombres de columnas
+                                inconsistentes. Funciona con TUS datos tal como están.
+                            </p>
                         </div>
 
-                        <div className="tip">
-                            <h4>🎯 Sé específico con el AI</h4>
-                            <p>En lugar de "productos menos vendidos", prueba "productos de E-commerce del 6 de enero ordenados por cantidad ascendente"</p>
+                        <div className="why-item">
+                            <h4>AI entrenado en lenguaje de ventas</h4>
+                            <p>
+                                No necesitas SQL. Pregunta "Top 10 SKUs" o "productos menos vendidos
+                                en E-commerce". El AI entiende tu negocio.
+                            </p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* CTA Section */}
-            <section className="cta-section">
-                <div className="container">
-                    <h2>¿Listo para transformar tus datos en decisiones?</h2>
-                    <button className="cta-button large" onClick={onLogin}>
-                        Ingresar al Dashboard →
-                    </button>
+            {/* Caso de Uso Real */}
+            <section className="case-section">
+                <div className="content-container">
+                    <h2 className="section-title">Lunes 8:00 AM - Jefe de Canal</h2>
+
+                    <div className="timeline">
+                        <div className="timeline-step">
+                            <span className="time">8:01</span>
+                            <p>Abre Alquimia, ve totales del fin de semana</p>
+                        </div>
+                        <div className="timeline-step">
+                            <span className="time">8:02</span>
+                            <p>Pregunta: "¿Cómo fue sábado vs domingo?"</p>
+                        </div>
+                        <div className="timeline-step">
+                            <span className="time">8:03</span>
+                            <p>AI responde: "Sábado vendió 30% más. Desglose por canal..."</p>
+                        </div>
+                    </div>
+
+                    <div className="case-result">
+                        <p className="result-highlight">Decisión tomada en 3 minutos.</p>
+                        <p className="result-before">Antes: Esperaba hasta el miércoles por el reporte.</p>
+                    </div>
                 </div>
             </section>
 
-            {/* Footer */}
+            {/* Prueba Social */}
+            <section className="social-proof">
+                <div className="content-container">
+                    <p className="metric-big">55,000+ registros de ventas analizados en tiempo real</p>
+
+                    <blockquote className="testimonial">
+                        "Antes tardábamos 4 horas en preparar el reporte semanal.
+                        Ahora pregunto y tengo la respuesta en segundos."
+                        <cite>— Gerente Comercial, Retail Tecnología</cite>
+                    </blockquote>
+                </div>
+            </section>
+
+            {/* CTA Final */}
+            <section className="final-cta">
+                <div className="content-container">
+                    <h2 className="cta-title">Tu próxima reunión de ventas puede ser diferente</h2>
+
+                    <div className="cta-buttons">
+                        <button className="cta-primary large" onClick={onLogin}>
+                            Prueba con tus datos
+                        </button>
+                        <button className="cta-secondary-btn">
+                            Agenda demo personalizada
+                        </button>
+                    </div>
+
+                    <p className="cta-microcopy">
+                        Importa tu CSV. Sin setup técnico. Resultados en minutos.
+                    </p>
+                </div>
+            </section>
+
+            {/* Footer Minimal */}
             <footer className="landing-footer">
-                <p>© 2026 Alquimia - Dashboard Inteligente de Análisis de Ventas</p>
+                <p>© 2026 Alquimia — Dashboard Inteligente de Análisis de Ventas</p>
             </footer>
         </div>
     )
