@@ -544,7 +544,7 @@ function App() {
               {/* Premium Filter Bar */}
               <div className="premium-filter-card">
                 <div className="filter-header">
-                  <span className="filter-title"><span style={{ marginRight: '8px', color: '#667eea' }}>▸</span>Filtros de Análisis</span>
+                  <span className="filter-title">🔍 Filtros de Análisis</span>
                   <button className="reset-btn" onClick={() => setFilters({ canal: '', marca: '', sucursal: '', fecha_inicio: '', fecha_fin: '' })}>
                     Limpiar Filtros
                   </button>
@@ -726,7 +726,7 @@ function App() {
           {activeSection === 'chats' && (
             <div className="card chat-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h2><span style={{ marginRight: '8px', color: '#667eea' }}>●</span>Asistente Alquimia</h2>
+                <h2>💬 Asistente Alquimia</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   <button onClick={handleClearChat} style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#f7fafc', color: '#666', border: '1px solid #e2e8f0' }}>
                     Limpiar
@@ -763,7 +763,7 @@ function App() {
                         <div className="message-content">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                           {msg.role === 'assistant' && (
-                            <button className="copy-button" onClick={() => copyToClipboard(msg.content)}>Copiar para WhatsApp</button>
+                            <button className="copy-button" onClick={() => copyToClipboard(msg.content)}>📋 Copiar</button>
                           )}
                         </div>
                       </div>
@@ -794,13 +794,13 @@ function App() {
             <div className="grid">
               <div className="card" style={{ gridColumn: '1/-1' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h2><span style={{ marginRight: '8px', color: '#667eea' }}>■</span>Registro de Ventas</h2>
+                  <h2>📊 Registro de Ventas</h2>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <button
                       onClick={() => document.getElementById('data-file-upload').click()}
                       style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
-                      Subir CSV
+                      📄 Subir CSV
                     </button>
                     <input
                       id="data-file-upload"
@@ -875,7 +875,7 @@ function App() {
           {activeSection === 'settings' && (
             <div className="card settings-section">
               <div className="magic-creator-card" style={{ background: 'rgba(102, 126, 234, 0.05)', padding: '24px', borderRadius: '16px', border: '1px dashed #667eea', marginBottom: '30px' }}>
-                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ color: '#667eea' }}>✦</span> Alquimia Magic Creator</h3>
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>✨ Magic Creator</h3>
                 <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>Describe la nueva capacidad y la IA construirá la herramienta por ti.</p>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
                   <input
@@ -904,7 +904,7 @@ function App() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2><span style={{ marginRight: '8px', color: '#667eea' }}>■</span>Herramientas Instaladas</h2>
+                <h2>⚙️ Herramientas Instaladas</h2>
                 <button className="secondary" onClick={() => setEditingTool({ name: '', description: '', parameters: '{}', sql_template: '', provider: 'supabase', enabled: true })}>
                   + Manual
                 </button>
@@ -934,8 +934,8 @@ function App() {
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            <button className="small-btn" onClick={() => setEditingTool({ ...tool, parameters: JSON.stringify(tool.parameters, null, 2) })}>Editar</button>
-                            <button className="small-btn error" onClick={() => handleDeleteTool(tool.id)}>Eliminar</button>
+                            <button className="small-btn" onClick={() => setEditingTool({ ...tool, parameters: JSON.stringify(tool.parameters, null, 2) })}>✏️ Editar</button>
+                            <button className="small-btn error" onClick={() => handleDeleteTool(tool.id)}>🗑️ Eliminar</button>
                           </div>
                         </td>
                       </tr>
@@ -1166,7 +1166,7 @@ function App() {
               <div className="card settings-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                   <div>
-                    <h2><span style={{ marginRight: '8px', color: '#667eea' }}>●</span>Gestión de Usuarios</h2>
+                    <h2>👥 Gestión de Usuarios</h2>
                     <p style={{ fontSize: '0.9rem', color: '#666' }}>Crea y administra los accesos a la plataforma Alquimia.</p>
                   </div>
                 </div>
@@ -1221,12 +1221,12 @@ function App() {
                           <td>{user.first_name} {user.last_name}</td>
                           <td style={{ fontWeight: '600' }}>{user.username}</td>
                           <td style={{ fontSize: '0.8rem' }}>
-                            <div>{user.email}</div>
-                            <div>{user.phone}</div>
+                            <div>📧 {user.email}</div>
+                            <div>📱 {user.phone}</div>
                           </td>
                           <td><span className="badge">{user.role}</span></td>
                           <td>
-                            <button className="small-btn error" onClick={() => handleDeleteUser(user.id)}>Eliminar</button>
+                            <button className="small-btn error" onClick={() => handleDeleteUser(user.id)}>🗑️ Eliminar</button>
                           </td>
                         </tr>
                       ))}
