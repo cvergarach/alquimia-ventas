@@ -31,6 +31,8 @@ function App() {
   const [filterOptions, setFilterOptions] = useState({ canales: [], marcas: [], sucursales: [] })
   const [managedTools, setManagedTools] = useState([])
   const [editingTool, setEditingTool] = useState(null)
+  const [magicPrompt, setMagicPrompt] = useState('')
+  const [magicLoading, setMagicLoading] = useState(false)
   const messagesEndRef = useRef(null)
 
   // ... (availableModels setup)
@@ -49,6 +51,28 @@ function App() {
       }
     } catch (error) {
       console.error('Error fetching tools:', error)
+    }
+  }
+
+  const handleGenerateMagicTool = async () => {
+    if (!magicPrompt.trim()) return
+    setMagicLoading(true)
+    try {
+      const response = await axios.post(`${API_URL}/api/settings/generate-tool`, { prompt: magicPrompt })
+      if (response.data.success) {
+        const newTool = response.data.data
+        // Pre-visualizar en el modal de edición
+        setEditingTool({
+          ...newTool,
+          parameters: JSON.stringify(newTool.parameters, null, 2)
+        })
+        setMagicPrompt('')
+      }
+    } catch (error) {
+      console.error('Error generating magic tool:', error)
+      alert('Error al generar la herramienta con IA')
+    } finally {
+      setMagicLoading(false)
     }
   }
 
@@ -672,10 +696,29 @@ function App() {
           )}
           {activeSection === 'settings' && (
             <div className="card settings-section">
+              <div className="magic-creator-card" style={{ background: 'rgba(102, 126, 234, 0.05)', padding: '24px', borderRadius: '16px', border: '1px dashed #667eea', marginBottom: '30px' }}>
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>✨ Alquimia Magic Creator</h3>
+                <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>Describe la nueva capacidad y la IA construirá la herramienta por ti.</p>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                  <input
+                    type="text"
+                    className="glass-input"
+                    style={{ flex: 1 }}
+                    placeholder="Ej: Quiero ver el top 5 de productos con más margen..."
+                    value={magicPrompt}
+                    onChange={(e) => setMagicPrompt(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleGenerateMagicTool()}
+                  />
+                  <button onClick={handleGenerateMagicTool} disabled={magicLoading}>
+                    {magicLoading ? 'Generando...' : 'Crear con IA'}
+                  </button>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2>⚙️ Configuración de Herramientas AI</h2>
-                <button onClick={() => setEditingTool({ name: '', description: '', parameters: '{}', provider: 'supabase', enabled: true })}>
-                  + Nueva Herramienta
+                <h2>🛠️ Herramientas Instaladas</h2>
+                <button className="secondary" onClick={() => setEditingTool({ name: '', description: '', parameters: '{}', sql_template: '', provider: 'supabase', enabled: true })}>
+                  + Manual
                 </button>
               </div>
 
@@ -736,9 +779,19 @@ function App() {
                       />
                     </div>
                     <div className="form-group">
+                      <label>Plantilla SQL (Opcional para Supabase)</label>
+                      <textarea
+                        rows="4"
+                        style={{ fontFamily: 'monospace', fontSize: '0.8rem', background: '#f8fafc' }}
+                        value={editingTool.sql_template || ''}
+                        onChange={(e) => setEditingTool({ ...editingTool, sql_template: e.target.value })}
+                        placeholder="SELECT ... FROM ventas WHERE canal = {{canal}}"
+                      />
+                    </div>
+                    <div className="form-group">
                       <label>Parámetros (JSON Schema)</label>
                       <textarea
-                        rows="6"
+                        rows="3"
                         style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
                         value={editingTool.parameters}
                         onChange={(e) => setEditingTool({ ...editingTool, parameters: e.target.value })}
@@ -756,7 +809,7 @@ function App() {
                       </select>
                     </div>
                     <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                      <button className="primary" onClick={() => handleSaveTool(editingTool)}>Guardar</button>
+                      <button className="primary" onClick={() => handleSaveTool(editingTool)}>Guardar y Activar</button>
                       <button className="secondary" onClick={() => setEditingTool(null)}>Cancelar</button>
                     </div>
                   </div>

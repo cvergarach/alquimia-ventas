@@ -453,6 +453,37 @@ async function callSupabaseTool(toolName, args) {
           analysis: "Compara las ventas vs las metas para identificar donde el canal está caído."
         };
       }
+
+      default: {
+        // Herramientas dinámicas (creadas por el usuario)
+        const { data: tool, error: toolErr } = await supabase
+          .from('ai_tools')
+          .select('sql_template')
+          .eq('name', toolName)
+          .single();
+
+        if (toolErr || !tool?.sql_template) return { success: false, error: `Herramienta ${toolName} no encontrada.` };
+
+        // Reemplazar placeholders en el SQL template
+        let sql = tool.sql_template;
+        const filters = args.filters || {};
+
+        // Reemplazo básico de {{field}} por el valor formateado para SQL
+        Object.entries(filters).forEach(([key, value]) => {
+          const formattedValue = typeof value === 'string' ? `'${value}'` : value;
+          sql = sql.replace(new RegExp(`{{${key}}}`, 'g'), formattedValue);
+        });
+
+        // Limpiar placeholders no usados (poner NULL o similar)
+        sql = sql.replace(/{{[a-zA-Z0-9_]+}}/g, 'NULL');
+
+        console.log(`[Dynamic Tool] Executing SQL: ${sql}`);
+
+        const { data: result, error: execErr } = await supabase.rpc('execute_ai_query', { sql_query: sql });
+
+        if (execErr) throw execErr;
+        return { success: true, data: result };
+      }
     }
   } catch (error) {
     return { success: false, error: error.message };
@@ -1077,6 +1108,55 @@ app.delete('/api/settings/tools/:id', async (req, res) => {
     if (error) throw error;
     res.json({ success: true, message: 'Herramienta eliminada' });
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Generar una herramienta usando IA
+app.post('/api/settings/generate-tool', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    // Usamos el modelo más capaz para generar código SQL y JSON Schema
+    const generationModel = genAI.getGenerativeModel({
+      model: 'gemini-1.5-pro',
+      generationConfig: { response_mime_type: "application/json" }
+    });
+
+    const aiPrompt = `Eres un experto en ingeniería de AI Tools y SQL de Postgres.
+El usuario quiere crear una nueva capacidad (tool) para un asistente que analiza ventas.
+Base de datos: Tabla 'ventas' con columnas: [id, dia, canal, sku, cantidad, adquisicion, marca, modelo, origen, sucursal, ingreso_neto, costo_neto, margen].
+
+REQUERIMIENTO DEL USUARIO: "${prompt}"
+
+Tu tarea es devolver un objeto JSON con la definición técnica completa. 
+Para el SQL, usa placeholders como {{dia}}, {{canal}}, {{marca}}, etc. para insertar filtros dinámicos.
+
+Formato de respuesta:
+{
+  "name": "nombre_en_snake_case",
+  "description": "Explicación clara de qué hace esta función y cuándo usarla (para el modelo de lenguaje)",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "filters": {
+        "type": "object",
+        "description": "Filtros opcionales (dia, canal, marca, sucursal, fecha_inicio, fecha_fin)"
+      }
+    }
+  },
+  "sql_template": "SELECT ... FROM ventas WHERE ... (usa condiciones flexibles)",
+  "provider": "supabase"
+}
+
+Ejemplo de SQL flexible: "SELECT canal, sum(ingreso_neto) as total FROM ventas WHERE ({{canal}} IS NULL OR canal = {{canal}}) AND ({{marca}} IS NULL OR marca = {{marca}}) GROUP BY canal"`;
+
+    const result = await generationModel.generateContent(aiPrompt);
+    const data = JSON.parse(result.response.text());
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('[AI Tool Gen] Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

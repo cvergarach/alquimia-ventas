@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS ai_tools (
   name VARCHAR(255) UNIQUE NOT NULL,
   description TEXT NOT NULL,
   parameters JSONB DEFAULT '{}',
+  sql_template TEXT, -- Nueva columna para consultas personalizadas
   provider VARCHAR(50) DEFAULT 'supabase', -- 'supabase' o 'sheets'
   enabled BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -21,6 +22,23 @@ CREATE POLICY "Enable read access for all" ON ai_tools
 -- Política para permitir gestión total (esto debería estar restringido en prod)
 CREATE POLICY "Enable all for admin" ON ai_tools
   FOR ALL USING (true);
+
+-- Función para ejecutar consultas dinámicas generadas por la IA
+-- NOTA: Esta función es potente, asegúrate de restringir los permisos del rol anon/authenticated.
+CREATE OR REPLACE FUNCTION execute_ai_query(sql_query TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result JSONB;
+BEGIN
+    EXECUTE 'SELECT jsonb_agg(t) FROM (' || sql_query || ') t' INTO result;
+    RETURN COALESCE(result, '[]'::jsonb);
+EXCEPTION WHEN OTHERS THEN
+    RETURN jsonb_build_object('error', SQLERRM);
+END;
+$$;
 
 -- Insertar herramientas actuales como semilla
 INSERT INTO ai_tools (name, description, parameters, provider) VALUES
