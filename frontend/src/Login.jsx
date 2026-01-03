@@ -63,9 +63,6 @@ const Login = ({ onLoginSuccess }) => {
                     </button>
                 </form>
 
-                <div className="login-hint">
-                    Usuario por defecto: admin / Password: admin123
-                </div>
             </div>
         </div>
     );

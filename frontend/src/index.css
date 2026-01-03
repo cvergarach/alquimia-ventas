@@ -1225,13 +1225,3 @@ button.secondary {
   font-weight: 600;
   border-left: 4px solid #e11d48;
 }
-
-.login-hint {
-  margin-top: 30px;
-  background: #f0f9ff;
-  color: #0369a1;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
