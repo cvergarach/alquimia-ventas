@@ -7,6 +7,8 @@ function Landing({ onLogin }) {
             {/* Hero Section */}
             <section className="hero-section">
                 <div className="hero-container">
+                    <div className="brand-name">ALQUIMIA</div>
+
                     <h1 className="hero-headline">
                         ¿Cuántas horas perdiste esta semana<br />
                         interpretando reportes de ventas?

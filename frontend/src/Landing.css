@@ -39,6 +39,15 @@
     text-align: center;
 }
 
+.brand-name {
+    font-size: clamp(3rem, 8vw, 5rem);
+    font-weight: 900;
+    color: white;
+    letter-spacing: 0.1em;
+    margin-bottom: 40px;
+    text-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
 .hero-headline {
     font-size: clamp(2.5rem, 5vw, 4rem);
     font-weight: 700;
