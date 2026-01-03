@@ -1118,19 +1118,10 @@ app.post('/api/settings/generate-tool', async (req, res) => {
     const { prompt, modelId = 'gemini-1.5-pro' } = req.body;
     console.log(`[AI Tool Gen] Petición recibida: ${prompt} usando ${modelId}`);
 
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY no configurada en el servidor.');
-    }
+    const isClaude = modelId.startsWith('claude');
+    let data;
 
-    // Limpiar modelId y asegurar que usamos uno válido si falla el flash
-    const targetModel = modelId === 'gemini-1.5-flash' ? 'gemini-1.5-flash-latest' : modelId;
-
-    const generationModel = genAI.getGenerativeModel({
-      model: targetModel,
-      generationConfig: { responseMimeType: "application/json" }
-    });
-
-    const aiPrompt = `Eres un experto en ingeniería de AI Tools y SQL de Postgres.
+    const aiPrompt = `Eres un experto en ingeniería de AI Tools y SQL de Postgres. 
 El usuario quiere crear una nueva capacidad (tool) para un asistente que analiza ventas.
 Base de datos: Tabla 'ventas' con columnas: [id, dia, canal, sku, cantidad, adquisicion, marca, modelo, origen, sucursal, ingreso_neto, costo_neto, margen].
 
@@ -1139,7 +1130,7 @@ REQUERIMIENTO DEL USUARIO: "${prompt}"
 Tu tarea es devolver un objeto JSON con la definición técnica completa. 
 Para el SQL, usa placeholders como {{dia}}, {{canal}}, {{marca}}, {{sucursal}} para insertar filtros dinámicos.
 
-Formato de respuesta:
+Formato de respuesta (DEBE SER JSON PURO):
 {
   "name": "nombre_en_snake_case",
   "description": "Explicación clara de qué hace esta función y cuándo usarla",
@@ -1156,18 +1147,34 @@ Formato de respuesta:
   "provider": "supabase"
 }`;
 
-    console.log(`[AI Tool Gen] Generando con Gemini...`);
-    const result = await generationModel.generateContent(aiPrompt);
-    const responseText = result.response.text();
-    console.log(`[AI Tool Gen] Respuesta de Gemini recibida.`);
+    if (isClaude) {
+      if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY no configurada.');
 
-    try {
-      const data = JSON.parse(responseText);
-      res.json({ success: true, data });
-    } catch (parseError) {
-      console.error('[AI Tool Gen] Error parseando JSON de Gemini:', responseText);
-      throw new Error('La IA generó una respuesta inválida.');
+      const response = await anthropic.messages.create({
+        model: modelId,
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: aiPrompt + "\nResponde únicamente con el JSON." }],
+      });
+
+      const text = response.content[0].text;
+      // Extraer JSON si hay texto adicional
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      data = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+
+    } else {
+      if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY no configurada.');
+
+      const cleanModelId = modelId === 'gemini-1.5-flash' ? 'gemini-1.5-flash-latest' : modelId;
+      const generationModel = genAI.getGenerativeModel({
+        model: cleanModelId,
+        generationConfig: { responseMimeType: "application/json" }
+      });
+
+      const result = await generationModel.generateContent(aiPrompt);
+      data = JSON.parse(result.response.text());
     }
+
+    res.json({ success: true, data });
   } catch (error) {
     console.error('[AI Tool Gen] Error:', error);
     res.status(500).json({ success: false, error: error.message });

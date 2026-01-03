@@ -719,8 +719,9 @@ function App() {
                     className="glass-input"
                     style={{ width: 'auto' }}
                   >
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    {availableModels.map(m => (
+                      <option key={m.id} value={m.id}>{m.icon} {m.name}</option>
+                    ))}
                   </select>
                   <button onClick={handleGenerateMagicTool} disabled={magicLoading}>
                     {magicLoading ? 'Generando...' : 'Crear con IA'}
