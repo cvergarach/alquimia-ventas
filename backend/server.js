@@ -1116,11 +1116,16 @@ app.delete('/api/settings/tools/:id', async (req, res) => {
 app.post('/api/settings/generate-tool', async (req, res) => {
   try {
     const { prompt } = req.body;
+    console.log(`[AI Tool Gen] Petición recibida: ${prompt}`);
 
-    // Usamos el modelo más capaz para generar código SQL y JSON Schema
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY no configurada en el servidor.');
+    }
+
+    // Usamos el modelo flash por rapidez y costo, suficiente para esta tarea técnica
     const generationModel = genAI.getGenerativeModel({
-      model: 'gemini-1.5-pro',
-      generationConfig: { response_mime_type: "application/json" }
+      model: 'gemini-1.5-flash',
+      generationConfig: { responseMimeType: "application/json" }
     });
 
     const aiPrompt = `Eres un experto en ingeniería de AI Tools y SQL de Postgres.
@@ -1130,12 +1135,12 @@ Base de datos: Tabla 'ventas' con columnas: [id, dia, canal, sku, cantidad, adqu
 REQUERIMIENTO DEL USUARIO: "${prompt}"
 
 Tu tarea es devolver un objeto JSON con la definición técnica completa. 
-Para el SQL, usa placeholders como {{dia}}, {{canal}}, {{marca}}, etc. para insertar filtros dinámicos.
+Para el SQL, usa placeholders como {{dia}}, {{canal}}, {{marca}}, {{sucursal}} para insertar filtros dinámicos.
 
 Formato de respuesta:
 {
   "name": "nombre_en_snake_case",
-  "description": "Explicación clara de qué hace esta función y cuándo usarla (para el modelo de lenguaje)",
+  "description": "Explicación clara de qué hace esta función y cuándo usarla",
   "parameters": {
     "type": "object",
     "properties": {
@@ -1145,16 +1150,22 @@ Formato de respuesta:
       }
     }
   },
-  "sql_template": "SELECT ... FROM ventas WHERE ... (usa condiciones flexibles)",
+  "sql_template": "SELECT ... FROM ventas WHERE ...",
   "provider": "supabase"
-}
+}`;
 
-Ejemplo de SQL flexible: "SELECT canal, sum(ingreso_neto) as total FROM ventas WHERE ({{canal}} IS NULL OR canal = {{canal}}) AND ({{marca}} IS NULL OR marca = {{marca}}) GROUP BY canal"`;
-
+    console.log(`[AI Tool Gen] Generando con Gemini...`);
     const result = await generationModel.generateContent(aiPrompt);
-    const data = JSON.parse(result.response.text());
+    const responseText = result.response.text();
+    console.log(`[AI Tool Gen] Respuesta de Gemini recibida.`);
 
-    res.json({ success: true, data });
+    try {
+      const data = JSON.parse(responseText);
+      res.json({ success: true, data });
+    } catch (parseError) {
+      console.error('[AI Tool Gen] Error parseando JSON de Gemini:', responseText);
+      throw new Error('La IA generó una respuesta inválida.');
+    }
   } catch (error) {
     console.error('[AI Tool Gen] Error:', error);
     res.status(500).json({ success: false, error: error.message });
