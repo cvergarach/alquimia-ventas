@@ -22,7 +22,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState(null)
   const [activeSheet, setActiveSheet] = useState('Metas')
-  const [modelConfig, setModelConfig] = useState({ provider: 'gemini', modelId: 'gemini-2.5-flash' })
+  const [modelConfig, setModelConfig] = useState({ provider: 'gemini', modelId: 'gemini-1.5-flash' })
   const [kpis, setKpis] = useState({ total_unidades: 0, total_ingreso: 0, total_margen: 0, margenPct: 0 })
   const [chartsData, setChartsData] = useState({ trend: [], channels: [], brands: [] })
   const [activeSection, setActiveSection] = useState('dashboard') // dashboard, chats, data
@@ -33,6 +33,7 @@ function App() {
   const [editingTool, setEditingTool] = useState(null)
   const [magicPrompt, setMagicPrompt] = useState('')
   const [magicLoading, setMagicLoading] = useState(false)
+  const [magicModel, setMagicModel] = useState('gemini-1.5-pro')
   const messagesEndRef = useRef(null)
 
   // ... (availableModels setup)
@@ -58,7 +59,10 @@ function App() {
     if (!magicPrompt.trim()) return
     setMagicLoading(true)
     try {
-      const response = await axios.post(`${API_URL}/api/settings/generate-tool`, { prompt: magicPrompt })
+      const response = await axios.post(`${API_URL}/api/settings/generate-tool`, {
+        prompt: magicPrompt,
+        modelId: magicModel
+      })
       if (response.data.success) {
         const newTool = response.data.data
         // Pre-visualizar en el modal de edición
@@ -118,7 +122,7 @@ function App() {
   }
 
   const availableModels = [
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini', icon: '⚡' },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini', icon: '⚡' },
     { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini', icon: '🧠' },
     { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', provider: 'claude', icon: '🎭' },
     { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', provider: 'claude', icon: '🕊️' },
@@ -699,16 +703,25 @@ function App() {
               <div className="magic-creator-card" style={{ background: 'rgba(102, 126, 234, 0.05)', padding: '24px', borderRadius: '16px', border: '1px dashed #667eea', marginBottom: '30px' }}>
                 <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>✨ Alquimia Magic Creator</h3>
                 <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>Describe la nueva capacidad y la IA construirá la herramienta por ti.</p>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
                   <input
                     type="text"
                     className="glass-input"
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, minWidth: '300px' }}
                     placeholder="Ej: Quiero ver el top 5 de productos con más margen..."
                     value={magicPrompt}
                     onChange={(e) => setMagicPrompt(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleGenerateMagicTool()}
                   />
+                  <select
+                    value={magicModel}
+                    onChange={(e) => setMagicModel(e.target.value)}
+                    className="glass-input"
+                    style={{ width: 'auto' }}
+                  >
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  </select>
                   <button onClick={handleGenerateMagicTool} disabled={magicLoading}>
                     {magicLoading ? 'Generando...' : 'Crear con IA'}
                   </button>

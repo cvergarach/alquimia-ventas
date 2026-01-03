@@ -1115,16 +1115,18 @@ app.delete('/api/settings/tools/:id', async (req, res) => {
 // Generar una herramienta usando IA
 app.post('/api/settings/generate-tool', async (req, res) => {
   try {
-    const { prompt } = req.body;
-    console.log(`[AI Tool Gen] Petición recibida: ${prompt}`);
+    const { prompt, modelId = 'gemini-1.5-pro' } = req.body;
+    console.log(`[AI Tool Gen] Petición recibida: ${prompt} usando ${modelId}`);
 
     if (!process.env.GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY no configurada en el servidor.');
     }
 
-    // Usamos el modelo flash por rapidez y costo, suficiente para esta tarea técnica
+    // Limpiar modelId y asegurar que usamos uno válido si falla el flash
+    const targetModel = modelId === 'gemini-1.5-flash' ? 'gemini-1.5-flash-latest' : modelId;
+
     const generationModel = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: targetModel,
       generationConfig: { responseMimeType: "application/json" }
     });
 
