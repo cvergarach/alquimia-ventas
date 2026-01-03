@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import Login from './Login'
+import Landing from './Landing'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
@@ -88,6 +89,8 @@ function SearchableSelect({ label, value, onChange, options, placeholder }) {
 }
 
 function App() {
+  const [showLanding, setShowLanding] = useState(true)
+  const [user, setUser] = useState(null)
   const [ventas, setVentas] = useState([])
   const [totalVentasCount, setTotalVentasCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
@@ -465,6 +468,10 @@ function App() {
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(val)
+  }
+
+  if (showLanding) {
+    return <Landing onLogin={() => setShowLanding(false)} />
   }
 
   if (!isLoggedIn) {
