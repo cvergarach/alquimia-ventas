@@ -915,10 +915,10 @@ app.get('/api/analytics/filters', async (req, res) => {
   try {
     console.log('[API] GET /api/analytics/filters');
 
-    // Función helper para obtener valores únicos
+    // Función helper para obtener valores únicos usando fetchFullData
     const getDistinct = async (column) => {
-      const { data, error } = await supabase.from('ventas').select(column);
-      if (error) throw error;
+      const query = supabase.from('ventas').select(column);
+      const data = await fetchFullData(query, 60000);
       return [...new Set(data.map(item => item[column]))].filter(Boolean).sort();
     };
 
@@ -927,6 +927,8 @@ app.get('/api/analytics/filters', async (req, res) => {
       getDistinct('marca'),
       getDistinct('sucursal')
     ]);
+
+    console.log(`[API] Filters retrieved - Canales: ${canales.length}, Marcas: ${marcas.length}, Sucursales: ${sucursales.length}`);
 
     res.json({
       success: true,

@@ -12,6 +12,79 @@ import './index.css'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 console.log('Alquimia API URL:', API_URL)
 
+// Searchable Select Component
+function SearchableSelect({ label, value, onChange, options, placeholder }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const filteredOptions = options.filter(opt =>
+    opt.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const displayValue = value || placeholder
+
+  return (
+    <div className="searchable-select" ref={dropdownRef}>
+      <label>{label}</label>
+      <div className="select-trigger" onClick={() => setIsOpen(!isOpen)}>
+        <span className={value ? '' : 'placeholder'}>{displayValue}</span>
+        <span className="arrow">{isOpen ? '▲' : '▼'}</span>
+      </div>
+      {isOpen && (
+        <div className="select-dropdown">
+          <input
+            type="text"
+            className="select-search"
+            placeholder="Buscar..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="select-options">
+            <div
+              className="select-option"
+              onClick={() => {
+                onChange('')
+                setIsOpen(false)
+                setSearchTerm('')
+              }}
+            >
+              <em>Todos</em>
+            </div>
+            {filteredOptions.map((opt, idx) => (
+              <div
+                key={idx}
+                className="select-option"
+                onClick={() => {
+                  onChange(opt)
+                  setIsOpen(false)
+                  setSearchTerm('')
+                }}
+              >
+                {opt}
+              </div>
+            ))}
+            {filteredOptions.length === 0 && (
+              <div className="select-option disabled">No se encontraron resultados</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function App() {
   const [ventas, setVentas] = useState([])
   const [totalVentasCount, setTotalVentasCount] = useState(0)
@@ -496,41 +569,30 @@ function App() {
                     </div>
                   </div>
 
-                  <div className="filter-control">
-                    <label>Canal</label>
-                    <select
-                      className="glass-select"
-                      value={filters.canal}
-                      onChange={(e) => setFilters({ ...filters, canal: e.target.value })}
-                    >
-                      <option value="">Todos los Canales</option>
-                      {filterOptions.canales.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
 
-                  <div className="filter-control">
-                    <label>Marca</label>
-                    <select
-                      className="glass-select"
-                      value={filters.marca}
-                      onChange={(e) => setFilters({ ...filters, marca: e.target.value })}
-                    >
-                      <option value="">Todas las Marcas</option>
-                      {filterOptions.marcas.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                  </div>
+                  <SearchableSelect
+                    label="Canal"
+                    value={filters.canal}
+                    onChange={(val) => setFilters({ ...filters, canal: val })}
+                    options={filterOptions.canales}
+                    placeholder="Todos los Canales"
+                  />
 
-                  <div className="filter-control">
-                    <label>Sucursal</label>
-                    <select
-                      className="glass-select"
-                      value={filters.sucursal}
-                      onChange={(e) => setFilters({ ...filters, sucursal: e.target.value })}
-                    >
-                      <option value="">Todas las Sucursales</option>
-                      {filterOptions.sucursales.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
+                  <SearchableSelect
+                    label="Marca"
+                    value={filters.marca}
+                    onChange={(val) => setFilters({ ...filters, marca: val })}
+                    options={filterOptions.marcas}
+                    placeholder="Todas las Marcas"
+                  />
+
+                  <SearchableSelect
+                    label="Sucursal"
+                    value={filters.sucursal}
+                    onChange={(val) => setFilters({ ...filters, sucursal: val })}
+                    options={filterOptions.sucursales}
+                    placeholder="Todas las Sucursales"
+                  />
                 </div>
               </div>
 
