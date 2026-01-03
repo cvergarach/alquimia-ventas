@@ -1,10 +1,11 @@
-/* Landing Page - Corporate & Human Design */
-/* NO gradientes genéricos, NO íconos decorativos, SOLO tipografía y espacio */
+/* Landing Page - Purple Gradient Theme matching Login */
 
 :root {
-    --primary: #1E3A5F;
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
     --accent: #10B981;
-    --bg: #F8FAFC;
+    --bg-gradient-start: #6366f1;
+    --bg-gradient-end: #8b5cf6;
     --text: #0F172A;
     --text-muted: #64748B;
     --border: #E2E8F0;
@@ -19,17 +20,17 @@
 .landing {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     color: var(--text);
-    background: white;
-    line-height: 1.6;
+    background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+    min-height: 100vh;
 }
 
 /* Hero Section */
 .hero-section {
-    min-height: 90vh;
+    min-height: 100vh;
     display: flex;
     align-items: center;
-    background: var(--bg);
     padding: 80px 20px;
+    position: relative;
 }
 
 .hero-container {
@@ -41,15 +42,16 @@
 .hero-headline {
     font-size: clamp(2.5rem, 5vw, 4rem);
     font-weight: 700;
-    color: var(--primary);
+    color: white;
     line-height: 1.1;
     margin-bottom: 30px;
     letter-spacing: -0.02em;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
 }
 
 .hero-subheadline {
     font-size: clamp(1.1rem, 2vw, 1.4rem);
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.95);
     max-width: 700px;
     margin: 0 auto 50px;
     font-weight: 400;
@@ -66,54 +68,44 @@
 }
 
 .cta-primary {
-    background: var(--primary);
-    color: white;
+    background: white;
+    color: var(--primary);
     border: none;
-    padding: 18px 40px;
-    font-size: 1.1rem;
-    font-weight: 600;
+    padding: 18px 50px;
+    font-size: 1.2rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
-    border-radius: 4px;
+    transition: all 0.3s;
+    border-radius: 50px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    text-transform: none;
 }
 
 .cta-primary:hover {
-    background: #152a45;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
 }
 
 .cta-primary.large {
-    padding: 22px 50px;
-    font-size: 1.2rem;
-}
-
-.cta-secondary {
-    color: var(--primary);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 1.1rem;
-    border-bottom: 2px solid transparent;
-    transition: border-color 0.2s;
-}
-
-.cta-secondary:hover {
-    border-bottom-color: var(--primary);
+    padding: 22px 60px;
+    font-size: 1.3rem;
 }
 
 .cta-secondary-btn {
-    background: white;
-    color: var(--primary);
-    border: 2px solid var(--primary);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 2px solid white;
     padding: 18px 40px;
     font-size: 1.1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
-    border-radius: 4px;
+    transition: all 0.3s;
+    border-radius: 50px;
+    backdrop-filter: blur(10px);
 }
 
 .cta-secondary-btn:hover {
-    background: var(--bg);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 /* Hero Visual - Dashboard Preview */
@@ -124,10 +116,9 @@
 
 .dashboard-preview {
     background: white;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 20px;
     padding: 40px;
-    box-shadow: 0 20px 60px rgba(30, 58, 95, 0.08);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
 }
 
 .kpi-row {
@@ -158,9 +149,9 @@
 }
 
 .chat-bubble {
-    background: var(--bg);
+    background: #f8fafc;
     padding: 30px;
-    border-radius: 8px;
+    border-radius: 12px;
     text-align: left;
 }
 
@@ -177,10 +168,19 @@
     line-height: 1.7;
 }
 
-/* Problem Section */
-.problem-section {
-    padding: 120px 20px;
+/* Content Sections */
+.problem-section,
+.results-section,
+.why-section,
+.case-section,
+.social-proof {
+    padding: 100px 20px;
     background: white;
+}
+
+.results-section,
+.case-section {
+    background: #f8fafc;
 }
 
 .content-container {
@@ -230,12 +230,7 @@
     margin-top: 40px;
 }
 
-/* Results Section */
-.results-section {
-    padding: 120px 20px;
-    background: var(--bg);
-}
-
+/* Result Cards */
 .result-card {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -244,12 +239,8 @@
     margin-bottom: 100px;
     padding: 60px;
     background: white;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-}
-
-.result-card.reverse {
-    grid-template-columns: 1fr 1fr;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(99, 102, 241, 0.1);
 }
 
 .result-card.reverse .result-content {
@@ -275,9 +266,9 @@
 }
 
 .result-visual {
-    background: var(--bg);
+    background: #f8fafc;
     padding: 30px;
-    border-radius: 8px;
+    border-radius: 12px;
 }
 
 .filter-demo {
@@ -295,11 +286,11 @@
 .filter-item {
     background: white;
     padding: 8px 16px;
-    border-radius: 4px;
+    border-radius: 20px;
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--primary);
-    border: 1px solid var(--border);
+    border: 2px solid var(--primary);
 }
 
 .result-instant {
@@ -308,7 +299,7 @@
     gap: 8px;
     padding: 20px;
     background: white;
-    border-radius: 4px;
+    border-radius: 12px;
     border-left: 4px solid var(--accent);
 }
 
@@ -334,7 +325,7 @@
 
 .chat-msg {
     padding: 15px 20px;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 0.95rem;
     line-height: 1.6;
 }
@@ -344,13 +335,15 @@
     color: white;
     align-self: flex-end;
     max-width: 80%;
+    border-radius: 20px 20px 5px 20px;
 }
 
 .chat-msg.ai {
     background: white;
     color: var(--text);
-    border: 1px solid var(--border);
+    border: 2px solid #e2e8f0;
     max-width: 90%;
+    border-radius: 20px 20px 20px 5px;
 }
 
 .live-dashboard {
@@ -381,10 +374,12 @@
     0%,
     100% {
         opacity: 1;
+        transform: scale(1);
     }
 
     50% {
-        opacity: 0.3;
+        opacity: 0.5;
+        transform: scale(1.2);
     }
 }
 
@@ -397,10 +392,11 @@
 .metric {
     background: white;
     padding: 20px;
-    border-radius: 4px;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    border: 2px solid #e2e8f0;
 }
 
 .metric span {
@@ -418,11 +414,6 @@
 }
 
 /* Why Section */
-.why-section {
-    padding: 120px 20px;
-    background: white;
-}
-
 .why-list {
     display: grid;
     gap: 60px;
@@ -443,12 +434,7 @@
     line-height: 1.7;
 }
 
-/* Case Section */
-.case-section {
-    padding: 120px 20px;
-    background: var(--bg);
-}
-
+/* Timeline */
 .timeline {
     max-width: 600px;
     margin: 0 auto 60px;
@@ -482,8 +468,9 @@
     margin: 0 auto;
     padding: 40px;
     background: white;
-    border-radius: 8px;
+    border-radius: 20px;
     border-left: 4px solid var(--accent);
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.1);
 }
 
 .result-highlight {
@@ -500,12 +487,6 @@
 }
 
 /* Social Proof */
-.social-proof {
-    padding: 120px 20px;
-    background: white;
-    text-align: center;
-}
-
 .metric-big {
     font-size: clamp(1.8rem, 3vw, 2.5rem);
     font-weight: 700;
@@ -520,7 +501,7 @@
     line-height: 1.7;
     color: var(--text);
     font-style: italic;
-    border-left: 4px solid var(--accent);
+    border-left: 4px solid var(--primary);
     padding-left: 40px;
     text-align: left;
 }
@@ -537,7 +518,7 @@
 /* Final CTA */
 .final-cta {
     padding: 120px 20px;
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
     color: white;
     text-align: center;
 }
@@ -547,6 +528,7 @@
     font-weight: 700;
     margin-bottom: 50px;
     color: white;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
 }
 
 .cta-buttons {
@@ -557,28 +539,9 @@
     flex-wrap: wrap;
 }
 
-.final-cta .cta-primary {
-    background: var(--accent);
-    color: white;
-}
-
-.final-cta .cta-primary:hover {
-    background: #0d9668;
-}
-
-.final-cta .cta-secondary-btn {
-    background: transparent;
-    color: white;
-    border-color: white;
-}
-
-.final-cta .cta-secondary-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
 .cta-microcopy {
     font-size: 1rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.9);
     font-weight: 400;
 }
 
@@ -586,7 +549,7 @@
 .landing-footer {
     padding: 40px 20px;
     text-align: center;
-    background: var(--bg);
+    background: rgba(99, 102, 241, 0.1);
     color: var(--text-muted);
     font-size: 0.9rem;
 }
@@ -617,5 +580,9 @@
 
     .testimonial {
         padding-left: 20px;
+    }
+
+    .hero-section {
+        padding: 60px 20px;
     }
 }
