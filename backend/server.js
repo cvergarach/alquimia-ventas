@@ -1228,4 +1228,80 @@ app.listen(PORT, () => {
   console.log(`📈 Google Sheets: ${process.env.GOOGLE_SHEET_ID ? 'Configured' : 'Not configured'}`);
 });
 
+// ============= ENDPOINTS DE AUTENTICACION Y USUARIOS =============
+
+// Login
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('app_users')
+      .select('*')
+      .eq('username', username)
+      .eq('password', password) // En producción usar hashing
+      .single();
+
+    if (error || !data) {
+      return res.status(401).json({ success: false, error: 'Credenciales inválidas' });
+    }
+
+    res.json({
+      success: true, data: {
+        id: data.id,
+        username: data.username,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        role: data.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Listar usuarios
+app.get('/api/users', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('app_users')
+      .select('id, username, email, first_name, last_name, phone, role, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Crear usuario
+app.post('/api/users', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('app_users')
+      .insert([req.body])
+      .select();
+
+    if (error) throw error;
+    res.json({ success: true, data: data[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Eliminar usuario
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('app_users')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default app;

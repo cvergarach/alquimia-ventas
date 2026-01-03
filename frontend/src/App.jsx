@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
+import Login from './Login'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
@@ -34,15 +35,80 @@ function App() {
   const [magicPrompt, setMagicPrompt] = useState('')
   const [magicLoading, setMagicLoading] = useState(false)
   const [magicModel, setMagicModel] = useState('gemini-1.5-pro')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [managedUsers, setManagedUsers] = useState([])
+  const [newUser, setNewUser] = useState({
+    username: '', password: '', email: '', first_name: '', last_name: '', phone: ''
+  })
   const messagesEndRef = useRef(null)
 
   // ... (availableModels setup)
 
   useEffect(() => {
+    // Verificar sesión al cargar
+    const savedUser = localStorage.getItem('alquimia_user')
+    if (savedUser) {
+      setCurrentUser(JSON.parse(savedUser))
+      setIsLoggedIn(true)
+    }
+
     if (activeSection === 'settings') {
       fetchManagedTools()
     }
+    if (activeSection === 'users') {
+      fetchManagedUsers()
+    }
   }, [activeSection])
+
+  const handleLoginSuccess = (userData) => {
+    setCurrentUser(userData)
+    setIsLoggedIn(true)
+    localStorage.setItem('alquimia_user', JSON.stringify(userData))
+  }
+
+  const handleLogout = () => {
+    setCurrentUser(null)
+    setIsLoggedIn(false)
+    localStorage.removeItem('alquimia_user')
+  }
+
+  const fetchManagedUsers = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/users`)
+      if (response.data.success) {
+        setManagedUsers(response.data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    }
+  }
+
+  const handleCreateUser = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/api/users`, newUser)
+      if (response.data.success) {
+        setManagedUsers([response.data.data, ...managedUsers])
+        setNewUser({ username: '', password: '', email: '', first_name: '', last_name: '', phone: '' })
+        alert('Usuario creado correctamente')
+      }
+    } catch (error) {
+      console.error('Error creating user:', error)
+      alert('Error al crear usuario')
+    }
+  }
+
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm('¿Estás seguro de eliminar este usuario?')) return
+    try {
+      const response = await axios.delete(`${API_URL}/api/users/${id}`)
+      if (response.data.success) {
+        setManagedUsers(managedUsers.filter(u => u.id !== id))
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error)
+    }
+  }
 
   const fetchManagedTools = async () => {
     try {
@@ -326,6 +392,10 @@ function App() {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(val)
   }
 
+  if (!isLoggedIn) {
+    return <Login onLoginSuccess={handleLoginSuccess} />
+  }
+
   return (
     <div className="layout-wrapper">
       {/* Sidebar Navigation */}
@@ -357,13 +427,15 @@ function App() {
 
         <div className="sidebar-footer">
           <div className="user-profile">
-            <div className="user-avatar">CV</div>
+            <div className="user-avatar">
+              {currentUser?.first_name?.charAt(0)}{currentUser?.last_name?.charAt(0)}
+            </div>
             <div className="user-info">
-              <div className="user-name">cvergarach@gmail.com</div>
-              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>Admin</div>
+              <div className="user-name">{currentUser?.first_name} {currentUser?.last_name}</div>
+              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>{currentUser?.role}</div>
             </div>
           </div>
-          <div className="nav-item" style={{ padding: '8px 0', fontSize: '0.8rem' }}>
+          <div className="nav-item" style={{ padding: '8px 0', fontSize: '0.8rem' }} onClick={handleLogout}>
             <span>🚪</span> Cerrar Sesión
           </div>
         </div>
@@ -855,6 +927,80 @@ function App() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeSection === 'users' && (
+            <div className="card settings-section">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <div>
+                  <h2>👥 Gestión de Usuarios</h2>
+                  <p style={{ fontSize: '0.9rem', color: '#666' }}>Crea y administra los accesos a la plataforma Alquimia.</p>
+                </div>
+              </div>
+
+              <div className="magic-creator-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '24px', borderRadius: '16px', marginBottom: '30px' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Nuevo Usuario</h3>
+                <div className="filter-grid" style={{ gap: '15px' }}>
+                  <div className="filter-control">
+                    <label>Nombre</label>
+                    <input type="text" className="glass-input" value={newUser.first_name} onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })} placeholder="Nombre" />
+                  </div>
+                  <div className="filter-control">
+                    <label>Apellido</label>
+                    <input type="text" className="glass-input" value={newUser.last_name} onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })} placeholder="Apellido" />
+                  </div>
+                  <div className="filter-control">
+                    <label>Email</label>
+                    <input type="email" className="glass-input" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} placeholder="correo@ejemplo.com" />
+                  </div>
+                  <div className="filter-control">
+                    <label>Celular</label>
+                    <input type="text" className="glass-input" value={newUser.phone} onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })} placeholder="+56 9..." />
+                  </div>
+                  <div className="filter-control">
+                    <label>Usuario</label>
+                    <input type="text" className="glass-input" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} placeholder="nombre.apellido" />
+                  </div>
+                  <div className="filter-control">
+                    <label>Contraseña</label>
+                    <input type="password" className="glass-input" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} placeholder="••••••••" />
+                  </div>
+                </div>
+                <button onClick={handleCreateUser} style={{ marginTop: '20px', width: '200px' }}>
+                  Crear Usuario
+                </button>
+              </div>
+
+              <div className="table-container">
+                <table className="settings-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Usuario</th>
+                      <th>Contacto</th>
+                      <th>Rol</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {managedUsers.map(user => (
+                      <tr key={user.id}>
+                        <td>{user.first_name} {user.last_name}</td>
+                        <td style={{ fontWeight: '600' }}>{user.username}</td>
+                        <td style={{ fontSize: '0.8rem' }}>
+                          <div>📧 {user.email}</div>
+                          <div>📱 {user.phone}</div>
+                        </td>
+                        <td><span className="badge">{user.role}</span></td>
+                        <td>
+                          <button className="small-btn error" onClick={() => handleDeleteUser(user.id)}>🗑️</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
