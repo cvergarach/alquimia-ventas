@@ -21,7 +21,6 @@ function Landing({ onLogin }) {
                         <button className="cta-primary" onClick={onLogin}>
                             Analiza tus ventas ahora
                         </button>
-                        <a href="#demo" className="cta-secondary">Ver demo de 2 minutos</a>
                     </div>
 
                     <div className="hero-visual">
