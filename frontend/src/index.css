@@ -934,6 +934,7 @@ button.secondary {
   font-weight: 600;
   cursor: pointer;
 }
+
 /* Magic Creator Premium Styles */
 .magic-creator-card {
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
@@ -970,4 +971,140 @@ button.secondary {
   font-size: 4rem;
   opacity: 0.1;
   transform: rotate(15deg);
+}
+
+/* Alquimia Premium Redesign Additions */
+
+.premium-filter-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 32px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid #edf2f7;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.filter-title {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 1.1rem;
+}
+
+.reset-btn {
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.filter-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-control label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-range span {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+.kpi-card.highlighted {
+  background: linear-gradient(135deg, #ffffff, #f5f3ff) !important;
+  border: 1px solid #ddd6fe !important;
+}
+
+.kpi-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
+
+.icon-units {
+  color: #6366f1;
+  background: #eef2ff;
+}
+
+.icon-revenue {
+  color: #f59e0b;
+  background: #fffbeb;
+}
+
+.icon-margin {
+  color: #10b981;
+  background: #ecfdf5;
+}
+
+.icon-efficiency {
+  color: #ec4899;
+  background: #fdf2f8;
+}
+
+.chart-card.wide {
+  grid-column: span 2;
+}
+
+.card-header {
+  margin-bottom: 20px;
+}
+
+.card-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+@media (max-width: 1024px) {
+  .chart-card.wide {
+    grid-column: span 1;
+  }
 }

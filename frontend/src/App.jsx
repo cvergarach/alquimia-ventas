@@ -331,8 +331,8 @@ function App() {
       {/* Sidebar Navigation */}
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
-          <div className="user-avatar" style={{ background: '#667eea', color: 'white' }}>AL</div>
-          <span style={{ fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.5px' }}>DATALIVE</span>
+          <div className="brand-logo">✨</div>
+          <span className="brand-name">ALQUIMIA</span>
         </div>
 
         <nav className="sidebar-nav">
@@ -380,7 +380,7 @@ function App() {
               <div className="top-bar-title">
                 {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}
               </div>
-              <div className="top-bar-subtitle">Bienvenido al espacio de trabajo de Alquimia</div>
+              <div className="top-bar-subtitle">Inteligencia de Datos Aplicada</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -391,115 +391,138 @@ function App() {
         <div className="content-area">
           {activeSection === 'dashboard' && (
             <>
-              {/* Filter Bar */}
-              <div className="filter-bar">
-                <div className="filter-group">
-                  <label>📅 Periodo</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="date"
-                      className="glass-input"
-                      value={filters.fecha_inicio}
-                      onChange={(e) => setFilters({ ...filters, fecha_inicio: e.target.value })}
-                    />
-                    <input
-                      type="date"
-                      className="glass-input"
-                      value={filters.fecha_fin}
-                      onChange={(e) => setFilters({ ...filters, fecha_fin: e.target.value })}
-                    />
+              {/* Premium Filter Bar */}
+              <div className="premium-filter-card">
+                <div className="filter-header">
+                  <span className="filter-title">🔍 Filtros de Análisis</span>
+                  <button className="reset-btn" onClick={() => setFilters({ canal: '', marca: '', sucursal: '', fecha_inicio: '', fecha_fin: '' })}>
+                    Limpiar Filtros
+                  </button>
+                </div>
+                <div className="filter-grid">
+                  <div className="filter-control">
+                    <label>Periodo</label>
+                    <div className="date-range">
+                      <input
+                        type="date"
+                        className="glass-input"
+                        value={filters.fecha_inicio}
+                        onChange={(e) => setFilters({ ...filters, fecha_inicio: e.target.value })}
+                      />
+                      <span>hasta</span>
+                      <input
+                        type="date"
+                        className="glass-input"
+                        value={filters.fecha_fin}
+                        onChange={(e) => setFilters({ ...filters, fecha_fin: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="filter-control">
+                    <label>Canal</label>
+                    <select
+                      className="glass-select"
+                      value={filters.canal}
+                      onChange={(e) => setFilters({ ...filters, canal: e.target.value })}
+                    >
+                      <option value="">Todos los Canales</option>
+                      {filterOptions.canales.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="filter-control">
+                    <label>Marca</label>
+                    <select
+                      className="glass-select"
+                      value={filters.marca}
+                      onChange={(e) => setFilters({ ...filters, marca: e.target.value })}
+                    >
+                      <option value="">Todas las Marcas</option>
+                      {filterOptions.marcas.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="filter-control">
+                    <label>Sucursal</label>
+                    <select
+                      className="glass-select"
+                      value={filters.sucursal}
+                      onChange={(e) => setFilters({ ...filters, sucursal: e.target.value })}
+                    >
+                      <option value="">Todas las Sucursales</option>
+                      {filterOptions.sucursales.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
                   </div>
                 </div>
-
-                <div className="filter-group">
-                  <label>📢 Canal</label>
-                  <select
-                    className="glass-select"
-                    value={filters.canal}
-                    onChange={(e) => setFilters({ ...filters, canal: e.target.value })}
-                  >
-                    <option value="">Todos los Canales</option>
-                    {filterOptions.canales.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                <div className="filter-group">
-                  <label>🏷️ Marca</label>
-                  <select
-                    className="glass-select"
-                    value={filters.marca}
-                    onChange={(e) => setFilters({ ...filters, marca: e.target.value })}
-                  >
-                    <option value="">Todas las Marcas</option>
-                    {filterOptions.marcas.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-
-                <div className="filter-group">
-                  <label>🏠 Sucursal</label>
-                  <select
-                    className="glass-select"
-                    value={filters.sucursal}
-                    onChange={(e) => setFilters({ ...filters, sucursal: e.target.value })}
-                  >
-                    <option value="">Todas las Sucursales</option>
-                    {filterOptions.sucursales.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-
-                <button className="clear-filters-btn" onClick={() => setFilters({ canal: '', marca: '', sucursal: '', fecha_inicio: '', fecha_fin: '' })}>
-                  Limpiar
-                </button>
               </div>
 
-              {/* KPI Summary */}
+              {/* Premium KPI Summary */}
               <div className="dashboard-summary">
-                <div className="kpi-card">
+                <div className="kpi-card glassmorphism">
                   <div className="kpi-card-content">
-                    <div className="kpi-label">Total Unidades</div>
+                    <span className="kpi-label">Total Unidades</span>
                     <div className="kpi-value">{formatNumber(kpis.total_unidades)}</div>
-                    <div className="trend-badge trend-up">+0%</div>
+                    <div className="trend-badge trend-up">⚡ +0% hoy</div>
                   </div>
-                  <div className="kpi-icon">📦</div>
+                  <div className="kpi-icon icon-units">📦</div>
                 </div>
-                <div className="kpi-card">
+
+                <div className="kpi-card glassmorphism highlighted">
                   <div className="kpi-card-content">
-                    <div className="kpi-label">Ingreso Bruto</div>
+                    <span className="kpi-label">Ingreso Bruto</span>
                     <div className="kpi-value">{formatCurrency(kpis.total_ingreso)}</div>
-                    <div className="trend-badge trend-up">+0%</div>
+                    <div className="trend-badge trend-up">📈 +0% hoy</div>
                   </div>
-                  <div className="kpi-icon">💰</div>
+                  <div className="kpi-icon icon-revenue">💰</div>
                 </div>
-                <div className="kpi-card">
+
+                <div className="kpi-card glassmorphism">
                   <div className="kpi-card-content">
-                    <div className="kpi-label">Margen Neto</div>
+                    <span className="kpi-label">Margen Neto</span>
                     <div className="kpi-value">{formatCurrency(kpis.total_margen)}</div>
-                    <div className="trend-badge trend-up">+0%</div>
+                    <div className="trend-badge trend-up">✅ +0% hoy</div>
                   </div>
-                  <div className="kpi-icon">📈</div>
+                  <div className="kpi-icon icon-margin">📊</div>
                 </div>
-                <div className="kpi-card">
+
+                <div className="kpi-card glassmorphism">
                   <div className="kpi-card-content">
-                    <div className="kpi-label">Eficiencia (Mgn%)</div>
+                    <span className="kpi-label">Eficiencia (Mgn%)</span>
                     <div className="kpi-value">{kpis.margenPct.toFixed(1)}%</div>
-                    <div className="trend-badge trend-up">+0%</div>
+                    <div className="trend-badge trend-up">🎯 +0% hoy</div>
                   </div>
-                  <div className="kpi-icon">🎯</div>
+                  <div className="kpi-icon icon-efficiency">🎯</div>
                 </div>
               </div>
 
               {/* Charts & Widgets */}
               <div className="grid">
-                <div className="card">
-                  <h2>Tendencia de Ventas (u)</h2>
-                  <div style={{ height: '300px' }}>
+                <div className="card chart-card wide">
+                  <div className="card-header">
+                    <h2>📈 Tendencia de Ventas (unidades)</h2>
+                  </div>
+                  <div className="chart-wrapper" style={{ height: '300px' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartsData.trend}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="date" hide />
-                        <YAxis hide />
-                        <Tooltip />
-                        <Line type="monotone" dataKey="value" stroke="#667eea" strokeWidth={3} dot={false} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 10 }}
+                          tickFormatter={(str) => str ? str.split('-').slice(1).reverse().join('/') : ''}
+                        />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px rgba(0,0,0,0.1)' }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          stroke="var(--secondary)"
+                          strokeWidth={4}
+                          dot={{ r: 4, fill: 'var(--secondary)', strokeWidth: 2, stroke: '#fff' }}
+                          activeDot={{ r: 6, strokeWidth: 0 }}
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -835,8 +858,8 @@ function App() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </main >
+    </div >
   )
 }
 
