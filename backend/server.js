@@ -637,7 +637,7 @@ Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.2
 
     if (modelConfig.provider === 'claude') {
       // --- LÓGICA CLAUDE ---
-      const claudeTools = tools[0].functionDeclarations.map(fd => ({
+      const claudeTools = currentTools[0].functionDeclarations.map(fd => ({
         name: fd.name,
         description: fd.description,
         input_schema: fd.parameters
@@ -718,8 +718,8 @@ Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.2
     } else {
       // --- LÓGICA GEMINI (Default) ---
       const model = genAI.getGenerativeModel({
-        model: modelConfig.modelId || 'gemini-2.5-flash',
-        tools: tools
+        model: modelConfig.modelId || 'gemini-1.5-flash',
+        tools: currentTools
       });
 
       const chatHistory = history.map(msg => ({
@@ -733,7 +733,7 @@ Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.2
           { role: 'model', parts: [{ text: 'Entendido. Estoy listo para ayudarte.' }] },
           ...chatHistory
         ],
-        tools: tools,
+        tools: currentTools,
       });
 
       let result = await chat.sendMessage(message);
