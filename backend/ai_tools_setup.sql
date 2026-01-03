@@ -42,11 +42,15 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
--- Insertar herramientas actuales como semilla
+-- Insertar herramientas actuales como semilla (con manejo de duplicados)
 INSERT INTO ai_tools (name, description, parameters, provider) VALUES
 ('get_summary_stats', 'OBTENER TOTALES RÁPIDOS. Retorna el gran total de unidades, ingresos y margen.', '{"type": "object", "properties": {"filters": {"type": "object"}}}', 'supabase'),
 ('query_ventas', 'VISTA DE DETALLE. Consulta transacciones individuales. Máximo 100 filas.', '{"type": "object", "properties": {"filters": {"type": "object"}, "limit": {"type": "number"}}}', 'supabase'),
 ('aggregate_ventas', 'PROCESAR TOTALES POR SEGMENTO. Úsalo para saber cuánto se vendió por canal, marca, etc.', '{"type": "object", "properties": {"groupBy": {"type": "array", "items": {"type": "string"}}, "filters": {"type": "object"}}, "required": ["groupBy"]}', 'supabase'),
 ('get_top_productos', 'Ranking de mejores productos por un criterio.', '{"type": "object", "properties": {"orderBy": {"type": "string"}, "limit": {"type": "number"}, "filters": {"type": "object"}}, "required": ["orderBy"]}', 'supabase'),
 ('get_performance_report', 'Compara el rendimiento de ventas con el día anterior y promedio móvil.', '{"type": "object", "properties": {"date": {"type": "string"}, "filters": {"type": "object"}}, "required": ["date"]}', 'supabase'),
-('query_metas', 'Consulta metas de ventas desde Google Sheets.', '{"type": "object", "properties": {"filters": {"type": "object"}}}', 'sheets');
+('query_metas', 'Consulta metas de ventas desde Google Sheets.', '{"type": "object", "properties": {"filters": {"type": "object"}}}', 'sheets')
+ON CONFLICT (name) DO UPDATE SET
+  description = EXCLUDED.description,
+  parameters = EXCLUDED.parameters,
+  provider = EXCLUDED.provider;
