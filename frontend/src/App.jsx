@@ -27,6 +27,8 @@ function App() {
   const [chartsData, setChartsData] = useState({ trend: [], channels: [], brands: [] })
   const [activeSection, setActiveSection] = useState('dashboard') // dashboard, chats, data
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [filters, setFilters] = useState({ canal: '', marca: '', sucursal: '', fecha_inicio: '', fecha_fin: '' })
+  const [filterOptions, setFilterOptions] = useState({ canales: [], marcas: [], sucursales: [] })
   const messagesEndRef = useRef(null)
 
   const availableModels = [
@@ -48,13 +50,21 @@ function App() {
   useEffect(() => {
     loadVentas(1)
     loadAnalytics()
+    loadFilters()
     loadSheetsData('Metas')
   }, [])
+
+  // Recargar analytics cuando los filtros cambien
+  useEffect(() => {
+    loadAnalytics()
+  }, [filters])
 
   const loadVentas = async (page = 1) => {
     console.log(`[Frontend] Loading ventas page ${page}`);
     try {
-      const response = await axios.get(`${API_URL}/api/ventas?page=${page}&limit=50`);
+      // Pasamos también los filtros a la tabla si queremos que sea reactiva (opcional, pero recomendado)
+      const params = new URLSearchParams({ page, limit: 50, ...filters }).toString();
+      const response = await axios.get(`${API_URL}/api/ventas?${params}`);
       if (response.data.success) {
         setVentas(response.data.data);
         setTotalVentasCount(response.data.total);
@@ -66,12 +76,24 @@ function App() {
     }
   }
 
-  const loadAnalytics = async () => {
-    console.log('[Frontend] Loading analytics');
+  const loadFilters = async () => {
     try {
+      const response = await axios.get(`${API_URL}/api/analytics/filters`);
+      if (response.data.success) {
+        setFilterOptions(response.data.data);
+      }
+    } catch (error) {
+      console.error('[Frontend] loadFilters error:', error);
+    }
+  }
+
+  const loadAnalytics = async () => {
+    console.log('[Frontend] Loading analytics with filters:', filters);
+    try {
+      const queryParams = new URLSearchParams(filters).toString();
       const [kpiRes, chartRes] = await Promise.all([
-        axios.get(`${API_URL}/api/analytics/kpis`),
-        axios.get(`${API_URL}/api/analytics/charts`)
+        axios.get(`${API_URL}/api/analytics/kpis?${queryParams}`),
+        axios.get(`${API_URL}/api/analytics/charts?${queryParams}`)
       ]);
 
       if (kpiRes.data.success) {
@@ -276,6 +298,67 @@ function App() {
         <div className="content-area">
           {activeSection === 'dashboard' && (
             <>
+              {/* Filter Bar */}
+              <div className="filter-bar">
+                <div className="filter-group">
+                  <label>📅 Periodo</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="date"
+                      className="glass-input"
+                      value={filters.fecha_inicio}
+                      onChange={(e) => setFilters({ ...filters, fecha_inicio: e.target.value })}
+                    />
+                    <input
+                      type="date"
+                      className="glass-input"
+                      value={filters.fecha_fin}
+                      onChange={(e) => setFilters({ ...filters, fecha_fin: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="filter-group">
+                  <label>📢 Canal</label>
+                  <select
+                    className="glass-select"
+                    value={filters.canal}
+                    onChange={(e) => setFilters({ ...filters, canal: e.target.value })}
+                  >
+                    <option value="">Todos los Canales</option>
+                    {filterOptions.canales.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+
+                <div className="filter-group">
+                  <label>🏷️ Marca</label>
+                  <select
+                    className="glass-select"
+                    value={filters.marca}
+                    onChange={(e) => setFilters({ ...filters, marca: e.target.value })}
+                  >
+                    <option value="">Todas las Marcas</option>
+                    {filterOptions.marcas.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+
+                <div className="filter-group">
+                  <label>🏠 Sucursal</label>
+                  <select
+                    className="glass-select"
+                    value={filters.sucursal}
+                    onChange={(e) => setFilters({ ...filters, sucursal: e.target.value })}
+                  >
+                    <option value="">Todas las Sucursales</option>
+                    {filterOptions.sucursales.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                <button className="clear-filters-btn" onClick={() => setFilters({ canal: '', marca: '', sucursal: '', fecha_inicio: '', fecha_fin: '' })}>
+                  Limpiar
+                </button>
+              </div>
+
               {/* KPI Summary */}
               <div className="dashboard-summary">
                 <div className="kpi-card">

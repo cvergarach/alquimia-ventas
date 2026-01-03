@@ -772,9 +772,10 @@ app.get('/api/ventas', async (req, res) => {
 // Endpoint para KPIs consolidados (Servidor)
 app.get('/api/analytics/kpis', async (req, res) => {
   try {
-    console.log('[API] GET /api/analytics/kpis');
-    // Usamos la lógica de get_summary_stats
-    const result = await callSupabaseTool('get_summary_stats', {});
+    const filters = req.query;
+    console.log('[API] GET /api/analytics/kpis', filters);
+    // Usamos la lógica de get_summary_stats con los filtros pasados
+    const result = await callSupabaseTool('get_summary_stats', { filters });
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -784,25 +785,31 @@ app.get('/api/analytics/kpis', async (req, res) => {
 // Endpoint para Datos de Gráficos (Servidor)
 app.get('/api/analytics/charts', async (req, res) => {
   try {
-    console.log('[API] GET /api/analytics/charts');
+    const filters = req.query;
+    console.log('[API] GET /api/analytics/charts', filters);
 
-    // Obtenemos todos los datos necesarios para agrupar (solo campos clave para ahorrar ancho de banda internos)
-    const query = supabase.from('ventas').select('dia, canal, marca, cantidad');
-    const data = await fetchFullData(query, 60000); // Bypass 1000 limit
+    // Obtenemos todos los datos necesarios para agrupar aplicando filtros
+    let query = supabase.from('ventas').select('dia, canal, marca, cantidad');
 
-    // 1. Tendencia Temporal
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (!value) return;
+        if (key === 'fecha_inicio') query = query.gte('dia', value);
+        else if (key === 'fecha_fin') query = query.lte('dia', value);
+        else if (key === 'dia') query = query.eq('dia', value);
+        else query = query.eq(key, value);
+      });
+    }
+
+    const data = await fetchFullData(query, 60000);
+
     const trend = {};
-    // 2. Por Canal
     const byChannel = {};
-    // 3. Por Marca
     const byBrand = {};
 
     data.forEach(row => {
-      // Trend
       trend[row.dia] = (trend[row.dia] || 0) + (row.cantidad || 0);
-      // Channel
       byChannel[row.canal] = (byChannel[row.canal] || 0) + (row.cantidad || 0);
-      // Brand
       byBrand[row.marca] = (byBrand[row.marca] || 0) + (row.cantidad || 0);
     });
 
@@ -814,6 +821,41 @@ app.get('/api/analytics/charts', async (req, res) => {
 
     res.json({ success: true, data: charts });
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint para obtener valores únicos de filtros
+app.get('/api/analytics/filters', async (req, res) => {
+  try {
+    console.log('[API] GET /api/analytics/filters');
+
+    // Obtenemos valores únicos para los filtros principales
+    const [canales, marcas, sucursales] = await Promise.all([
+      supabase.from('ventas').select('canal').distinct(),
+      supabase.from('ventas').select('marca').distinct(),
+      supabase.from('ventas').select('sucursal').distinct()
+    ]);
+
+    // Supabase JS no soporta .distinct() directamente de forma eficiente a veces, 
+    // pero podemos hacer un select simplificado. Si fallara, usamos raw query o un select de todo (costoso).
+    // Alternativa: select('canal').then(...) y set.
+
+    const getDistinct = async (column) => {
+      const { data, error } = await supabase.from('ventas').select(column);
+      if (error) throw error;
+      return [...new Set(data.map(item => item[column]))].sort();
+    };
+
+    const filters = {
+      canales: await getDistinct('canal'),
+      marcas: await getDistinct('marca'),
+      sucursales: await getDistinct('sucursal')
+    };
+
+    res.json({ success: true, data: filters });
+  } catch (error) {
+    console.error('Error fetching filters:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -860,16 +902,21 @@ app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
       .pipe(csvParser({
         separator: ';',
         mapHeaders: ({ header }) => {
+          // Normalización robusta: trim, minúsculas, SIN ACENTOS, y quitar caracteres especial al final (como _)
           const h = header.trim().toLowerCase()
-            .replace(/\s+/g, '_')
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Quitar acentos
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+            .replace(/[^a-z0-9_]+/g, '_') // Reemplazar no alfanuméricos por _
+            .replace(/^_|_$/g, ''); // Quitar _ al inicio o final
           return h;
         }
       }))
       .on('data', (data) => {
         const parseChileanNumber = (str) => {
           if (!str || typeof str !== 'string') return typeof str === 'number' ? str : 0;
-          return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+          // Limpiar: quitar símbolos de moneda, espacios, y puntos de miles
+          const clean = str.replace(/[$\s.]/g, '').replace(',', '.');
+          const num = parseFloat(clean);
+          return isNaN(num) ? 0 : num;
         };
 
         // Mapeo flexible para nombres de columnas

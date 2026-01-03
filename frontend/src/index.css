@@ -602,6 +602,69 @@ button:disabled {
     padding: 12px;
   }
 
+  /* Filter Bar */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #edf2f7;
+    margin-bottom: 24px;
+    align-items: flex-end;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-group label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .glass-input {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
+    font-size: 0.9rem;
+    outline: none;
+  }
+
+  .glass-input:focus {
+    border-color: var(--secondary);
+    background: white;
+  }
+
+  .clear-filters-btn {
+    padding: 8px 16px;
+    background: #f7fafc;
+    color: #718096;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 38px;
+  }
+
+  .clear-filters-btn:hover {
+    background: #edf2f7;
+    color: #2d3748;
+    transform: none;
+    box-shadow: none;
+  }
+
   .dashboard-summary {
     grid-template-columns: 1fr;
     gap: 16px;
