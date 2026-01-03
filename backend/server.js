@@ -525,9 +525,9 @@ FORMATO DE RESPUESTA (CRÍTICO para WhatsApp/Escritorio):
 2. LISTAS: Usa viñetas claras (• o -) para métricas individuales. No escribas párrafos largos.
 3. NEGRILLAS: Usa asteriscos para resaltar cifras y nombres de canales/marcas (ej: *81 unidades*).
 4. ESPACIADO: Deja un doble salto de línea entre cada bloque principal de información.
-5. EFICIENCIA (MÁXIMA PRIORIDAD): Para responder preguntas de totales, promedios o "cómo voy", utiliza SIEMPRE la herramienta `get_summary_stats`. Esta herramienta es la más barata en tokens y procesa el 100% de la base de datos.
-6. SEGMENTACIÓN: Si el usuario pide totales por canal o marca, usa `aggregate_ventas`.
-7. DETALLE: Usa `query_ventas` (filas individuales) ÚNICAMENTE si el usuario pide ver de forma explícita los registros detallados de una venta.
+5. EFICIENCIA (MÁXIMA PRIORIDAD): Para responder preguntas de totales, promedios o "cómo voy", utiliza SIEMPRE la herramienta ` + "`get_summary_stats`" + `. Esta herramienta es la más barata en tokens y procesa el 100% de la base de datos.
+6. SEGMENTACIÓN: Si el usuario pide totales por canal o marca, usa ` + "`aggregate_ventas`" + `.
+7. DETALLE: Usa ` + "`query_ventas`" + ` (filas individuales) ÚNICAMENTE si el usuario pide ver de forma explícita los registros detallados de una venta.
 8. AVISO: Explícale al usuario que usas herramientas de resumen para asegurar precisión sobre el 100% de la data sin gastar tokens innecesarios.
 9. VISUAL: Menciona el DASHBOARD VISUAL en la parte superior.
 10. EJECUTIVO: Ve al grano. Menos texto, más estructura.
