@@ -917,9 +917,11 @@ app.get('/api/analytics/filters', async (req, res) => {
 
     // Función helper para obtener valores únicos usando fetchFullData
     const getDistinct = async (column) => {
-      const query = supabase.from('ventas').select(column);
+      const query = supabase.from('ventas').select(column).order('id');
       const data = await fetchFullData(query, 60000);
-      return [...new Set(data.map(item => item[column]))].filter(Boolean).sort();
+      const uniqueValues = [...new Set(data.map(item => item[column]))].filter(Boolean).sort();
+      console.log(`[Filters] ${column}: ${uniqueValues.length} unique values from ${data.length} total records`);
+      return uniqueValues;
     };
 
     const [canales, marcas, sucursales] = await Promise.all([
