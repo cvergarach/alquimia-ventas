@@ -4,9 +4,19 @@ import pino from 'pino';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Inicializar Supabase
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY
+);
 
 // Configuración
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -130,6 +140,82 @@ function validateSession() {
 }
 
 /**
+ * Guardar sesión en Supabase
+ */
+async function saveSessionToDatabase(phoneNumber) {
+    try {
+        const credsPath = path.join(authDir, 'creds.json');
+
+        if (!fs.existsSync(credsPath)) {
+            log('WARN', 'No hay creds.json para guardar');
+            return false;
+        }
+
+        const sessionData = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
+
+        const { data, error } = await supabase
+            .from('whatsapp_sessions')
+            .upsert({
+                phone_number: phoneNumber,
+                session_data: sessionData,
+                last_connected: new Date().toISOString(),
+                is_active: true
+            }, {
+                onConflict: 'phone_number'
+            });
+
+        if (error) {
+            log('ERROR', 'Error guardando sesión en DB', { error: error.message });
+            return false;
+        }
+
+        log('SUCCESS', 'Sesión guardada en Supabase', { phoneNumber });
+        return true;
+    } catch (error) {
+        log('ERROR', 'Error guardando sesión', { error: error.message });
+        return false;
+    }
+}
+
+/**
+ * Cargar sesión desde Supabase
+ */
+async function loadSessionFromDatabase(phoneNumber = null) {
+    try {
+        let query = supabase
+            .from('whatsapp_sessions')
+            .select('*')
+            .eq('is_active', true)
+            .order('last_connected', { ascending: false });
+
+        if (phoneNumber) {
+            query = query.eq('phone_number', phoneNumber);
+        }
+
+        const { data, error } = await query.limit(1).single();
+
+        if (error || !data) {
+            log('INFO', 'No hay sesión en DB', { phoneNumber });
+            return false;
+        }
+
+        // Guardar en archivo local
+        const credsPath = path.join(authDir, 'creds.json');
+        fs.writeFileSync(credsPath, JSON.stringify(data.session_data, null, 2));
+
+        log('SUCCESS', 'Sesión cargada desde Supabase', {
+            phoneNumber: data.phone_number,
+            lastConnected: data.last_connected
+        });
+
+        return data.phone_number;
+    } catch (error) {
+        log('ERROR', 'Error cargando sesión', { error: error.message });
+        return false;
+    }
+}
+
+/**
  * Enviar mensaje con reintentos
  */
 async function sendMessageWithRetry(to, message, retries = 3) {
@@ -222,6 +308,12 @@ function stopKeepalive() {
 export async function connectWhatsApp(messageHandler) {
     try {
         log('INFO', 'Iniciando conexión a WhatsApp...');
+
+        // Intentar cargar sesión desde Supabase primero
+        if (!hasStoredSession()) {
+            log('INFO', 'No hay sesión local, intentando cargar desde Supabase...');
+            await loadSessionFromDatabase();
+        }
 
         // Validar sesión si existe
         if (hasStoredSession()) {
