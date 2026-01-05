@@ -1487,9 +1487,10 @@ app.get('/api/conversations', async (req, res) => {
 
     let query = supabase
       .from('conversations')
-      .select('*, messages(count)', { count: 'exact' });
+      .select('*', { count: 'exact' });
 
-    if (user_id) query = query.eq('user_id', user_id);
+    // Solo aplicar filtros si se proporcionan
+    if (user_id && user_id !== '') query = query.eq('user_id', user_id);
     if (phone_number) query = query.eq('phone_number', phone_number);
     if (channel) query = query.eq('channel', channel);
 

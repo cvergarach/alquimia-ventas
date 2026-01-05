@@ -458,7 +458,8 @@ function App() {
       const response = await axios.post(`${API_URL}/api/chat`, {
         message: inputMessage,
         history: chatMessages,
-        modelConfig: modelConfig
+        modelConfig: modelConfig,
+        user_id: currentUser?.id // Agregar user_id para asociar conversación
       })
       console.log('[Frontend] Chat response received:', response.data);
 
@@ -543,14 +544,21 @@ function App() {
 
   const loadConversations = async () => {
     try {
-      const params = new URLSearchParams({
-        ...conversationFilters,
-        user_id: currentUser?.id || '',
-        page: 1,
-        limit: 50
-      }).toString()
+      const params = {};
 
-      const response = await axios.get(`${API_URL}/api/conversations?${params}`)
+      // Solo agregar parámetros si tienen valor
+      if (conversationFilters.channel) params.channel = conversationFilters.channel;
+      if (conversationFilters.search) params.search = conversationFilters.search;
+      if (currentUser?.id) params.user_id = currentUser.id;
+
+      params.page = 1;
+      params.limit = 50;
+
+      const queryString = new URLSearchParams(params).toString();
+      const response = await axios.get(`${API_URL}/api/conversations?${queryString}`)
+
+      console.log('[Frontend] Conversations loaded:', response.data);
+
       if (response.data.success) {
         setConversations(response.data.data)
       }
