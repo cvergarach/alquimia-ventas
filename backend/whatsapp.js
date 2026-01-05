@@ -32,6 +32,7 @@ let qrCodeData = null;
 let isConnected = false;
 let reconnectAttempts = 0;
 let keepaliveInterval = null;
+let isConnecting = false; // Flag para prevenir conexiones simultáneas
 let connectionState = {
     connected: false,
     lastConnected: null,
@@ -341,6 +342,14 @@ function stopKeepalive() {
  */
 export async function connectWhatsApp(messageHandler) {
     try {
+        // Prevenir conexiones simultáneas
+        if (isConnecting) {
+            log('WARN', 'Ya hay una conexión en progreso, ignorando intento duplicado');
+            return { success: false, message: 'Connection already in progress' };
+        }
+
+        isConnecting = true;
+
         // Guardar referencia para reconexión agresiva
         messageHandlerRef = messageHandler;
 
@@ -437,6 +446,7 @@ export async function connectWhatsApp(messageHandler) {
                 } else if (connection === 'open') {
                     log('SUCCESS', '¡Conectado a WhatsApp exitosamente!');
                     isConnected = true;
+                    isConnecting = false; // Resetear flag de conexión
                     connectionState.connected = true;
                     connectionState.lastConnected = new Date().toISOString();
                     connectionState.lastActivity = new Date().toISOString();
@@ -555,6 +565,7 @@ export async function connectWhatsApp(messageHandler) {
 
         return { success: true };
     } catch (error) {
+        isConnecting = false; // Resetear flag en caso de error
         log('ERROR', 'Error al conectar WhatsApp', {
             error: error.message,
             stack: error.stack
