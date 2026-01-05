@@ -415,6 +415,9 @@ export async function connectWhatsApp(messageHandler) {
                         if (user) {
                             connectionState.phoneNumber = user.id.split(':')[0];
                             log('INFO', 'Número conectado', { phoneNumber: connectionState.phoneNumber });
+
+                            // Guardar sesión en Supabase
+                            await saveSessionToDatabase(connectionState.phoneNumber);
                         }
                     } catch (error) {
                         log('WARN', 'No se pudo obtener número de teléfono', { error: error.message });
@@ -425,7 +428,7 @@ export async function connectWhatsApp(messageHandler) {
             }
         });
 
-        // Manejar mensajes entrantes
+        // Manejar mensajes entrantes con respuesta inmediata
         sock.ev.on('messages.upsert', async (m) => {
             try {
                 const msg = m.messages[0];
@@ -443,34 +446,68 @@ export async function connectWhatsApp(messageHandler) {
                 log('INFO', 'Mensaje recibido', { from, length: text.length });
                 connectionState.lastActivity = new Date().toISOString();
 
-                // Enviar "typing" inmediatamente para mantener conexión activa
+                // Enviar "typing" inmediatamente
                 try {
                     await sock.sendPresenceUpdate('composing', from);
                 } catch (error) {
                     log('WARN', 'No se pudo enviar typing', { error: error.message });
                 }
 
-                // Procesar mensaje (puede tardar varios segundos)
-                const response = await messageHandler(text, from);
-
-                // Verificar conexión antes de enviar (puede haberse caído durante el procesamiento)
-                if (!isConnected || !sock || sock.ws?.readyState !== 1) {
-                    log('WARN', 'Conexión perdida durante procesamiento, esperando reconexión...');
-
-                    // Esperar hasta 30 segundos para reconexión
-                    for (let i = 0; i < 30; i++) {
-                        await new Promise(r => setTimeout(r, 1000));
-                        if (isConnected && sock && sock.ws?.readyState === 1) {
-                            log('INFO', 'Conexión recuperada, enviando respuesta');
-                            break;
-                        }
-                    }
+                // Responder INMEDIATAMENTE para mantener conexión activa
+                try {
+                    await sendMessageWithRetry(from, {
+                        text: '⏳ Procesando tu consulta...'
+                    });
+                    log('SUCCESS', 'Respuesta inmediata enviada');
+                } catch (error) {
+                    log('ERROR', 'Error enviando respuesta inmediata', { error: error.message });
                 }
 
-                // Intentar enviar con reintentos
-                await sendMessageWithRetry(from, { text: response });
+                // Procesar en background (no bloquea)
+                (async () => {
+                    try {
+                        log('INFO', 'Iniciando procesamiento en background');
 
-                log('SUCCESS', 'Respuesta enviada', { from });
+                        // Procesar mensaje (puede tardar varios segundos)
+                        const response = await messageHandler(text, from);
+
+                        log('INFO', 'Procesamiento completado, enviando respuesta');
+
+                        // Verificar conexión antes de enviar
+                        if (!isConnected || !sock || sock.ws?.readyState !== 1) {
+                            log('WARN', 'Conexión perdida, esperando reconexión...');
+
+                            // Esperar hasta 30 segundos para reconexión
+                            for (let i = 0; i < 30; i++) {
+                                await new Promise(r => setTimeout(r, 1000));
+                                if (isConnected && sock && sock.ws?.readyState === 1) {
+                                    log('INFO', 'Conexión recuperada');
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Enviar respuesta final
+                        await sendMessageWithRetry(from, { text: response });
+                        log('SUCCESS', 'Respuesta final enviada', { from });
+
+                    } catch (error) {
+                        log('ERROR', 'Error en procesamiento background', {
+                            error: error.message,
+                            stack: error.stack
+                        });
+
+                        // Intentar enviar mensaje de error
+                        try {
+                            await sendMessageWithRetry(from, {
+                                text: '❌ Lo siento, hubo un error procesando tu mensaje. Por favor intenta de nuevo.'
+                            });
+                        } catch (sendError) {
+                            log('ERROR', 'No se pudo enviar mensaje de error', { error: sendError.message });
+                        }
+                    }
+                })();
+
             } catch (error) {
                 log('ERROR', 'Error procesando mensaje', {
                     error: error.message,
