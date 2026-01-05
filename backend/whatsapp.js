@@ -99,8 +99,8 @@ export async function connectWhatsApp(messageHandler) {
                 // Mostrar "escribiendo..."
                 await sock.sendPresenceUpdate('composing', from);
 
-                // Procesar mensaje con el handler proporcionado
-                const response = await messageHandler(text);
+                // Procesar mensaje con el handler proporcionado (pasar número de teléfono)
+                const response = await messageHandler(text, from);
 
                 // Enviar respuesta
                 await sock.sendMessage(from, { text: response });

@@ -737,6 +737,11 @@ Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.2
       }
 
       const finalContent = response.content.find(c => c.type === 'text')?.text || "";
+
+      // Guardar conversación (asumimos user_id del req.body si está disponible)
+      const user_id = req.body.user_id || null;
+      await saveConversation(user_id, null, 'web', message, finalContent, modelConfig.modelId, toolsUsed);
+
       return res.json({
         success: true,
         response: finalContent,
@@ -812,9 +817,15 @@ Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.2
         response = result.response;
       }
 
+      const responseText = response.text();
+
+      // Guardar conversación (asumimos user_id del req.body si está disponible)
+      const user_id = req.body.user_id || null;
+      await saveConversation(user_id, null, 'web', message, responseText, modelConfig.modelId, lastToolResults);
+
       return res.json({
         success: true,
-        response: response.text(),
+        response: responseText,
         toolsUsed: lastToolResults,
         dataPreview: null
       });
@@ -828,6 +839,67 @@ Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.2
     });
   }
 });
+
+// Helper function para guardar conversación (usado por chat y whatsapp)
+async function saveConversation(user_id, phone_number, channel, userMessage, assistantResponse, modelUsed, toolsUsed) {
+  try {
+    // Buscar o crear conversación
+    let query = supabase
+      .from('conversations')
+      .select('*')
+      .eq('channel', channel);
+
+    if (user_id) query = query.eq('user_id', user_id);
+    if (phone_number) query = query.eq('phone_number', phone_number);
+
+    let { data: conversation, error: searchError } = await query
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Si no existe, crear nueva conversación
+    if (!conversation) {
+      const { data: newConv, error: createError } = await supabase
+        .from('conversations')
+        .insert([{
+          user_id,
+          phone_number,
+          channel,
+          title: userMessage.substring(0, 50) + (userMessage.length > 50 ? '...' : '')
+        }])
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('[SaveConversation] Error creating conversation:', createError);
+        return;
+      }
+      conversation = newConv;
+    }
+
+    // Guardar mensaje del usuario
+    await supabase.from('messages').insert([{
+      conversation_id: conversation.id,
+      role: 'user',
+      content: userMessage,
+      model_used: null,
+      tools_used: null
+    }]);
+
+    // Guardar respuesta del asistente
+    await supabase.from('messages').insert([{
+      conversation_id: conversation.id,
+      role: 'assistant',
+      content: assistantResponse,
+      model_used: modelUsed,
+      tools_used: toolsUsed && toolsUsed.length > 0 ? toolsUsed : null
+    }]);
+
+    console.log(`[SaveConversation] Saved to conversation ${conversation.id}`);
+  } catch (error) {
+    console.error('[SaveConversation] Error:', error);
+  }
+}
 
 // Obtener ventas con paginación
 app.get('/api/ventas', async (req, res) => {
@@ -1313,10 +1385,185 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
+// ============= CONVERSATION HISTORY ENDPOINTS =============
+
+// Crear o recuperar conversación existente
+app.post('/api/conversations', async (req, res) => {
+  try {
+    const { user_id, phone_number, channel } = req.body;
+
+    // Validar que al menos uno de user_id o phone_number esté presente
+    if (!user_id && !phone_number) {
+      return res.status(400).json({
+        success: false,
+        error: 'Se requiere user_id o phone_number'
+      });
+    }
+
+    // Buscar conversación existente
+    let query = supabase
+      .from('conversations')
+      .select('*')
+      .eq('channel', channel);
+
+    if (user_id) query = query.eq('user_id', user_id);
+    if (phone_number) query = query.eq('phone_number', phone_number);
+
+    const { data: existing, error: searchError } = await query
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (existing && !searchError) {
+      return res.json({ success: true, data: existing });
+    }
+
+    // Crear nueva conversación
+    const { data: newConv, error: createError } = await supabase
+      .from('conversations')
+      .insert([{ user_id, phone_number, channel, title: 'Nueva conversación' }])
+      .select()
+      .single();
+
+    if (createError) throw createError;
+
+    res.json({ success: true, data: newConv });
+  } catch (error) {
+    console.error('[Conversations] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Guardar mensaje en una conversación
+app.post('/api/conversations/:id/messages', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role, content, model_used, tools_used } = req.body;
+
+    const { data, error } = await supabase
+      .from('messages')
+      .insert([{
+        conversation_id: id,
+        role,
+        content,
+        model_used,
+        tools_used: tools_used || null
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Actualizar título de la conversación si es el primer mensaje del usuario
+    if (role === 'user') {
+      const { data: messages } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('conversation_id', id)
+        .eq('role', 'user');
+
+      if (messages && messages.length === 1) {
+        // Es el primer mensaje, usar como título (truncado)
+        const title = content.substring(0, 50) + (content.length > 50 ? '...' : '');
+        await supabase
+          .from('conversations')
+          .update({ title })
+          .eq('id', id);
+      }
+    }
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('[Messages] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Listar conversaciones con filtros
+app.get('/api/conversations', async (req, res) => {
+  try {
+    const { user_id, phone_number, channel, page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = supabase
+      .from('conversations')
+      .select('*, messages(count)', { count: 'exact' });
+
+    if (user_id) query = query.eq('user_id', user_id);
+    if (phone_number) query = query.eq('phone_number', phone_number);
+    if (channel) query = query.eq('channel', channel);
+
+    const { data, error, count } = await query
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      data,
+      total: count,
+      page: parseInt(page),
+      totalPages: Math.ceil(count / limit)
+    });
+  } catch (error) {
+    console.error('[Conversations] Error listing:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener mensajes de una conversación
+app.get('/api/conversations/:id/messages', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const { data, error, count } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact' })
+      .eq('conversation_id', id)
+      .order('created_at', { ascending: true })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      data,
+      total: count,
+      page: parseInt(page),
+      totalPages: Math.ceil(count / limit)
+    });
+  } catch (error) {
+    console.error('[Messages] Error listing:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Eliminar conversación
+app.delete('/api/conversations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    res.json({ success: true, message: 'Conversación eliminada' });
+  } catch (error) {
+    console.error('[Conversations] Error deleting:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ============ WHATSAPP INTEGRATION ============
 
 // Handler para procesar mensajes de WhatsApp
-async function processWhatsAppMessage(message) {
+async function processWhatsAppMessage(message, phone_number) {
   try {
     console.log(`[WhatsApp] Processing message: "${message}"`);
 
@@ -1402,6 +1649,10 @@ Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.2
 
     const finalText = response.content.find(c => c.type === 'text')?.text || "";
     console.log(`[WhatsApp] Response generated: "${finalText.substring(0, 100)}..."`);
+
+    // Guardar conversación de WhatsApp
+    await saveConversation(null, phone_number, 'whatsapp', message, finalText, 'claude-3-5-haiku-latest', []);
+
     return finalText;
 
   } catch (error) {

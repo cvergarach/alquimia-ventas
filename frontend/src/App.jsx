@@ -121,6 +121,10 @@ function App() {
   })
   const [whatsappConnected, setWhatsappConnected] = useState(false)
   const [whatsappQR, setWhatsappQR] = useState(null)
+  const [conversations, setConversations] = useState([])
+  const [selectedConversation, setSelectedConversation] = useState(null)
+  const [conversationMessages, setConversationMessages] = useState([])
+  const [conversationFilters, setConversationFilters] = useState({ channel: '', search: '' })
   const messagesEndRef = useRef(null)
 
   // ... (availableModels setup)
@@ -138,6 +142,9 @@ function App() {
     }
     if (activeSection === 'users') {
       fetchManagedUsers()
+    }
+    if (activeSection === 'historial') {
+      loadConversations()
     }
   }, [activeSection])
 
@@ -534,6 +541,49 @@ function App() {
     setChatMessages([])
   }
 
+  const loadConversations = async () => {
+    try {
+      const params = new URLSearchParams({
+        ...conversationFilters,
+        user_id: currentUser?.id || '',
+        page: 1,
+        limit: 50
+      }).toString()
+
+      const response = await axios.get(`${API_URL}/api/conversations?${params}`)
+      if (response.data.success) {
+        setConversations(response.data.data)
+      }
+    } catch (error) {
+      console.error('[Frontend] Error loading conversations:', error)
+    }
+  }
+
+  const loadConversationMessages = async (conversationId) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/conversations/${conversationId}/messages`)
+      if (response.data.success) {
+        setConversationMessages(response.data.data)
+      }
+    } catch (error) {
+      console.error('[Frontend] Error loading messages:', error)
+    }
+  }
+
+  const handleDeleteConversation = async (conversationId) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta conversación?')) return
+    try {
+      await axios.delete(`${API_URL}/api/conversations/${conversationId}`)
+      setConversations(conversations.filter(c => c.id !== conversationId))
+      if (selectedConversation?.id === conversationId) {
+        setSelectedConversation(null)
+        setConversationMessages([])
+      }
+    } catch (error) {
+      console.error('[Frontend] Error deleting conversation:', error)
+    }
+  }
+
   const COLORS = ['#667eea', '#764ba2', '#4c51bf', '#6b46c1', '#5a67d8', '#805ad5'];
 
   const formatCurrency = (val) => {
@@ -569,6 +619,9 @@ function App() {
           </div>
           <div className={`nav-item ${activeSection === 'guia' ? 'active' : ''}`} onClick={() => { setActiveSection('guia'); setIsSidebarOpen(false); }}>
             <span className="nav-icon">■</span> Guía
+          </div>
+          <div className={`nav-item ${activeSection === 'historial' ? 'active' : ''}`} onClick={() => { setActiveSection('historial'); setIsSidebarOpen(false); }}>
+            <span className="nav-icon">■</span> Historial
           </div>
           <div className={`nav-item ${activeSection === 'integraciones' ? 'active' : ''}`} onClick={() => { setActiveSection('integraciones'); setIsSidebarOpen(false); }}>
             <span className="nav-icon">■</span> Integraciones
@@ -1349,6 +1402,136 @@ function App() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeSection === 'historial' && (
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2>📜 Historial de Conversaciones</h2>
+                <button className="secondary" onClick={loadConversations}>🔄 Refrescar</button>
+              </div>
+
+              {/* Filtros */}
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                <select
+                  value={conversationFilters.channel}
+                  onChange={(e) => setConversationFilters({ ...conversationFilters, channel: e.target.value })}
+                  className="glass-input"
+                  style={{ width: 'auto' }}
+                >
+                  <option value="">Todos los canales</option>
+                  <option value="web">💬 Chat Web</option>
+                  <option value="whatsapp">📱 WhatsApp</option>
+                </select>
+                <button className="primary" onClick={loadConversations}>Aplicar Filtros</button>
+              </div>
+
+              {/* Vista de conversaciones */}
+              {!selectedConversation ? (
+                <div className="table-container">
+                  <table className="settings-table">
+                    <thead>
+                      <tr>
+                        <th>Canal</th>
+                        <th>Título</th>
+                        <th>Usuario/Teléfono</th>
+                        <th>Fecha</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {conversations.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                            No hay conversaciones registradas
+                          </td>
+                        </tr>
+                      ) : (
+                        conversations.map(conv => (
+                          <tr key={conv.id}>
+                            <td>
+                              <span className={`badge ${conv.channel === 'web' ? 'success' : 'info'}`}>
+                                {conv.channel === 'web' ? '💬 Web' : '📱 WhatsApp'}
+                              </span>
+                            </td>
+                            <td style={{ fontWeight: 'bold', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {conv.title || 'Sin título'}
+                            </td>
+                            <td style={{ fontSize: '0.85rem' }}>
+                              {conv.phone_number || `Usuario #${conv.user_id}`}
+                            </td>
+                            <td style={{ fontSize: '0.85rem', color: '#666' }}>
+                              {new Date(conv.updated_at).toLocaleString('es-CL')}
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                  className="small-btn"
+                                  onClick={() => {
+                                    setSelectedConversation(conv)
+                                    loadConversationMessages(conv.id)
+                                  }}
+                                >
+                                  👁️ Ver
+                                </button>
+                                <button
+                                  className="small-btn error"
+                                  onClick={() => handleDeleteConversation(conv.id)}
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                /* Vista detallada de conversación */
+                <div>
+                  <div style={{ marginBottom: '20px', padding: '15px', background: '#f8fafc', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h3 style={{ margin: 0, marginBottom: '5px' }}>{selectedConversation.title}</h3>
+                        <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                          <span className={`badge ${selectedConversation.channel === 'web' ? 'success' : 'info'}`} style={{ marginRight: '10px' }}>
+                            {selectedConversation.channel === 'web' ? '💬 Web' : '📱 WhatsApp'}
+                          </span>
+                          {selectedConversation.phone_number || `Usuario #${selectedConversation.user_id}`}
+                        </div>
+                      </div>
+                      <button className="secondary" onClick={() => { setSelectedConversation(null); setConversationMessages([]); }}>
+                        ← Volver
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Mensajes */}
+                  <div className="chat-messages" style={{ maxHeight: '500px', overflowY: 'auto', padding: '20px', background: '#fff', borderRadius: '12px' }}>
+                    {conversationMessages.map((msg, idx) => (
+                      <div key={idx} className={`message ${msg.role}`} style={{ marginBottom: '15px' }}>
+                        <div className="message-role" style={{ fontWeight: 'bold', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          {msg.role === 'user' ? '👤 Usuario' : '🤖 Asistente'}
+                          {msg.model_used && (
+                            <span className="badge" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                              {msg.model_used}
+                            </span>
+                          )}
+                          <span style={{ fontSize: '0.7rem', color: '#999', marginLeft: 'auto' }}>
+                            {new Date(msg.created_at).toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                        <div className="message-content">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
