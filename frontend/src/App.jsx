@@ -101,7 +101,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState(null)
   const [activeSheet, setActiveSheet] = useState('Metas')
-  const [modelConfig, setModelConfig] = useState({ provider: 'gemini', modelId: 'gemini-2.5-flash' })
+  const [modelConfig, setModelConfig] = useState({ provider: 'claude', modelId: 'claude-3-5-haiku-latest' })
   const [kpis, setKpis] = useState({ total_unidades: 0, total_ingreso: 0, total_margen: 0, margenPct: 0 })
   const [chartsData, setChartsData] = useState({ trend: [], channels: [], brands: [] })
   const [activeSection, setActiveSection] = useState('dashboard') // dashboard, chats, data
@@ -112,7 +112,7 @@ function App() {
   const [editingTool, setEditingTool] = useState(null)
   const [magicPrompt, setMagicPrompt] = useState('')
   const [magicLoading, setMagicLoading] = useState(false)
-  const [magicModel, setMagicModel] = useState('gemini-2.5-flash')
+  const [magicModel, setMagicModel] = useState('claude-3-5-haiku-latest')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [managedUsers, setManagedUsers] = useState([])

@@ -1320,7 +1320,7 @@ async function processWhatsAppMessage(message) {
   try {
     console.log(`[WhatsApp] Processing message: "${message}"`);
 
-    // Usar la misma lógica del chat con Gemini
+    // Usar Claude 3.5 Haiku para WhatsApp
     const currentTools = await getDynamicTools();
     const today = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
 
@@ -1338,55 +1338,69 @@ FORMATO DE RESPUESTA (CRÍTICO para WhatsApp):
 
 Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.234,50).`;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      tools: currentTools,
-      systemInstruction: systemPrompt
+    // Convertir tools a formato Claude
+    const claudeTools = currentTools[0].functionDeclarations.map(fd => ({
+      name: fd.name,
+      description: fd.description,
+      input_schema: fd.parameters
+    }));
+
+    let response = await anthropic.messages.create({
+      model: 'claude-3-5-haiku-latest',
+      max_tokens: 4096,
+      system: systemPrompt,
+      tools: claudeTools,
+      messages: [{ role: 'user', content: message }],
     });
 
-    const chat = model.startChat({ history: [] });
-    const result = await chat.sendMessage(message);
-    let response = result.response;
-
-    // Procesar tool calls si existen
     let callCount = 0;
     const MAX_CALLS = 5;
+    let messages = [{ role: 'user', content: message }];
 
-    while (response.functionCalls() && callCount < MAX_CALLS) {
+    while (response.stop_reason === 'tool_use' && callCount < MAX_CALLS) {
       callCount++;
-      const functionCalls = response.functionCalls();
-      const functionResponses = [];
+      messages.push({ role: 'assistant', content: response.content });
 
-      for (const call of functionCalls) {
-        console.log(`[WhatsApp] Tool call: ${call.name}`);
-        let toolResult;
+      const toolResults = [];
+      for (const contentBlock of response.content) {
+        if (contentBlock.type === 'tool_use') {
+          const { name, input, id } = contentBlock;
+          console.log(`[WhatsApp] Claude tool call: ${name}`, input);
 
-        if (call.name.startsWith('query_') || call.name.startsWith('aggregate_') || call.name.startsWith('get_top_')) {
-          if (call.name === 'query_metas') {
-            toolResult = await callSheetsTool(call.name, call.args);
+          let toolResult;
+          if (name.startsWith('query_') || name.startsWith('aggregate_') || name.startsWith('get_top_')) {
+            if (name === 'query_metas') {
+              toolResult = await callSheetsTool(name, input);
+            } else {
+              toolResult = await callSupabaseTool(name, input);
+            }
+          } else if (['list_sheets', 'get_forecast', 'get_comisiones', 'get_catalogo'].includes(name)) {
+            toolResult = await callSheetsTool(name, input);
           } else {
-            toolResult = await callSupabaseTool(call.name, call.args);
+            toolResult = await callSupabaseTool(name, input);
           }
-        } else if (['list_sheets', 'get_forecast', 'get_comisiones', 'get_catalogo'].includes(call.name)) {
-          toolResult = await callSheetsTool(call.name, call.args);
-        } else {
-          toolResult = await callSupabaseTool(call.name, call.args);
-        }
 
-        const processedResult = truncateToolResult(toolResult);
-        functionResponses.push({
-          functionResponse: {
-            name: call.name,
-            response: processedResult
-          }
-        });
+          const processedResult = truncateToolResult(toolResult);
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: id,
+            content: JSON.stringify(processedResult)
+          });
+        }
       }
 
-      const nextResult = await chat.sendMessage(functionResponses);
-      response = nextResult.response;
+      messages.push({ role: 'user', content: toolResults });
+
+      response = await anthropic.messages.create({
+        model: 'claude-3-5-haiku-latest',
+        max_tokens: 4096,
+        system: systemPrompt,
+        tools: claudeTools,
+        messages: messages,
+      });
     }
 
-    const finalText = response.text();
+    const finalText = response.content.find(c => c.type === 'text')?.text || "";
     console.log(`[WhatsApp] Response generated: "${finalText.substring(0, 100)}..."`);
     return finalText;
 
