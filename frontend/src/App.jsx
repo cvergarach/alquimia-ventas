@@ -567,7 +567,8 @@ function App() {
       // Solo agregar parámetros si tienen valor
       if (conversationFilters.channel) params.channel = conversationFilters.channel;
       if (conversationFilters.search) params.search = conversationFilters.search;
-      if (currentUser?.id) params.user_id = currentUser.id;
+      // No filtrar por user_id para mostrar todas las conversaciones
+      // if (currentUser?.id) params.user_id = currentUser.id;
 
       params.page = 1;
       params.limit = 50;
