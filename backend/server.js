@@ -1301,14 +1301,6 @@ Formato de respuesta (DEBE SER JSON PURO):
   }
 });
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Alquimia Backend running on port ${PORT}`);
-  console.log(`📊 Supabase: ${process.env.SUPABASE_URL ? 'Connected' : 'Not configured'}`);
-  console.log(`🤖 Gemini: ${process.env.GEMINI_API_KEY ? 'Configured' : 'Not configured'}`);
-  console.log(`📈 Google Sheets: ${process.env.GOOGLE_SHEET_ID ? 'Configured' : 'Not configured'}`);
-});
-
 // ============= ENDPOINTS DE AUTENTICACION Y USUARIOS =============
 
 // Login
@@ -1672,11 +1664,21 @@ app.get('/api/whatsapp/status', (req, res) => {
   }
 });
 
-// Endpoint: Conectar WhatsApp
+// Endpoint para conectar WhatsApp
 app.post('/api/whatsapp/connect', async (req, res) => {
   try {
     await whatsapp.connectWhatsApp(processWhatsAppMessage);
-    res.json({ success: true, message: 'Conexión iniciada. Escanea el QR code.' });
+    res.json({ success: true, message: 'Conexión iniciada' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint para eliminar sesión guardada
+app.delete('/api/whatsapp/session', async (req, res) => {
+  try {
+    const result = whatsapp.clearSession();
+    res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1702,4 +1704,22 @@ app.post('/api/whatsapp/restart', async (req, res) => {
   }
 });
 
-export default app;
+// Iniciar servidor
+app.listen(PORT, async () => {
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+  console.log(`📊 Supabase: ${process.env.SUPABASE_URL ? 'Connected' : 'Not configured'}`);
+  console.log(`🤖 Gemini: ${process.env.GEMINI_API_KEY ? 'Configured' : 'Not configured'}`);
+  console.log(`📈 Google Sheets: ${process.env.GOOGLE_SHEET_ID ? 'Configured' : 'Not configured'}`);
+
+  // Auto-conectar WhatsApp si hay sesión guardada
+  if (whatsapp.hasStoredSession()) {
+    console.log('📱 Sesión de WhatsApp encontrada, conectando automáticamente...');
+    try {
+      await whatsapp.connectWhatsApp(processWhatsAppMessage);
+    } catch (error) {
+      console.error('❌ Error en auto-conexión de WhatsApp:', error);
+    }
+  } else {
+    console.log('📱 No hay sesión de WhatsApp guardada. Usa /api/whatsapp/connect para iniciar.');
+  }
+});

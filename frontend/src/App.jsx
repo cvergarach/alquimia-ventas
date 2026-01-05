@@ -121,6 +121,7 @@ function App() {
   })
   const [whatsappConnected, setWhatsappConnected] = useState(false)
   const [whatsappQR, setWhatsappQR] = useState(null)
+  const [whatsappStatus, setWhatsappStatus] = useState(null)
   const [conversations, setConversations] = useState([])
   const [selectedConversation, setSelectedConversation] = useState(null)
   const [conversationMessages, setConversationMessages] = useState([])
@@ -156,6 +157,7 @@ function App() {
           const response = await axios.get(`${API_URL}/api/whatsapp/status`);
           setWhatsappConnected(response.data.connected);
           setWhatsappQR(response.data.qr);
+          setWhatsappStatus(response.data); // Guardar estado completo
         } catch (error) {
           console.error('Error checking WhatsApp status:', error);
         }
@@ -1334,16 +1336,43 @@ function App() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <h3 style={{ fontSize: '1.4rem', marginBottom: '5px' }}>WhatsApp AI Assistant</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className={`status-dot ${whatsappConnected ? 'online' : 'offline'}`} style={{
-                        width: '10px',
-                        height: '10px',
-                        borderRadius: '50%',
-                        background: whatsappConnected ? '#10B981' : '#EF4444'
-                      }}></span>
-                      <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: '500' }}>
-                        {whatsappConnected ? 'Conectado y Operativo' : 'Desconectado'}
-                      </span>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '16px',
+                      background: whatsappConnected ? '#ECFDF5' : '#FEF2F2',
+                      borderRadius: '12px',
+                      marginBottom: '30px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className={`status-dot ${whatsappConnected ? 'online' : 'offline'}`} style={{
+                          width: '10px',
+                          height: '10px',
+                          borderRadius: '50%',
+                          background: whatsappConnected ? '#10B981' : '#EF4444'
+                        }}></span>
+                        <div>
+                          <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: '500', display: 'block' }}>
+                            {whatsappConnected ? '✅ Conectado y Operativo' : '❌ Desconectado'}
+                          </span>
+                          {whatsappStatus?.phoneNumber && (
+                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                              📞 {whatsappStatus.phoneNumber}
+                            </span>
+                          )}
+                          {whatsappStatus?.lastActivity && whatsappConnected && (
+                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>
+                              💓 Última actividad: {new Date(whatsappStatus.lastActivity).toLocaleTimeString('es-CL')}
+                            </span>
+                          )}
+                          {whatsappStatus?.reconnectAttempts > 0 && (
+                            <span style={{ fontSize: '0.75rem', color: '#f59e0b', display: 'block' }}>
+                              🔄 Reintentando conexión... ({whatsappStatus.reconnectAttempts}/10)
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div>
@@ -1357,12 +1386,27 @@ function App() {
                         <button className="error-btn" onClick={handleDisconnectWhatsApp} style={{
                           background: '#FEE2E2',
                           color: '#DC2626',
-                          border: 'none',
+                          border: '1px solid #FCA5A5',
                           padding: '10px 20px',
                           borderRadius: '8px',
                           fontWeight: '600',
                           cursor: 'pointer'
                         }}>Desconectar</button>
+                        <button
+                          className="error-btn"
+                          onClick={handleClearWhatsAppSession}
+                          style={{
+                            background: '#FEF2F2',
+                            color: '#991B1B',
+                            border: '1px solid #FCA5A5',
+                            padding: '10px 20px',
+                            borderRadius: '8px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          🗑️ Eliminar Sesión
+                        </button>
                       </div>
                     )}
                   </div>
