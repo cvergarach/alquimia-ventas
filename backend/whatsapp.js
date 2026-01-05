@@ -443,10 +443,31 @@ export async function connectWhatsApp(messageHandler) {
                 log('INFO', 'Mensaje recibido', { from, length: text.length });
                 connectionState.lastActivity = new Date().toISOString();
 
-                await sock.sendPresenceUpdate('composing', from);
+                // Enviar "typing" inmediatamente para mantener conexión activa
+                try {
+                    await sock.sendPresenceUpdate('composing', from);
+                } catch (error) {
+                    log('WARN', 'No se pudo enviar typing', { error: error.message });
+                }
 
+                // Procesar mensaje (puede tardar varios segundos)
                 const response = await messageHandler(text, from);
 
+                // Verificar conexión antes de enviar (puede haberse caído durante el procesamiento)
+                if (!isConnected || !sock || sock.ws?.readyState !== 1) {
+                    log('WARN', 'Conexión perdida durante procesamiento, esperando reconexión...');
+
+                    // Esperar hasta 30 segundos para reconexión
+                    for (let i = 0; i < 30; i++) {
+                        await new Promise(r => setTimeout(r, 1000));
+                        if (isConnected && sock && sock.ws?.readyState === 1) {
+                            log('INFO', 'Conexión recuperada, enviando respuesta');
+                            break;
+                        }
+                    }
+                }
+
+                // Intentar enviar con reintentos
                 await sendMessageWithRetry(from, { text: response });
 
                 log('SUCCESS', 'Respuesta enviada', { from });
