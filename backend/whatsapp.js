@@ -13,6 +13,8 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 const INITIAL_RETRY_DELAY = 2000; // 2 segundos
 const MAX_RETRY_DELAY = 60000; // 1 minuto
 const KEEPALIVE_INTERVAL = 30000; // 30 segundos
+const MESSAGE_TIMEOUT = 30000; // 30 segundos para enviar mensaje
+const CONNECTION_TIMEOUT = 60000; // 60 segundos para conectar
 
 // Estado global de WhatsApp
 let sock = null;
@@ -27,7 +29,10 @@ let connectionState = {
     reconnectAttempts: 0,
     phoneNumber: null,
     qr: null,
-    lastActivity: null
+    lastActivity: null,
+    messagesSent: 0,
+    messagesReceived: 0,
+    errors: []
 };
 
 // Directorio para autenticación
@@ -39,10 +44,133 @@ if (!fs.existsSync(authDir)) {
 }
 
 /**
+ * Sistema de logging estructurado
+ */
+function log(level, message, data = {}) {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+        timestamp,
+        level,
+        module: 'WhatsApp',
+        message,
+        ...data
+    };
+
+    const emoji = {
+        'INFO': 'ℹ️',
+        'WARN': '⚠️',
+        'ERROR': '❌',
+        'SUCCESS': '✅',
+        'DEBUG': '🔍'
+    };
+
+    console.log(`${emoji[level] || '📝'} [${timestamp}] [WhatsApp:${level}] ${message}`,
+        Object.keys(data).length > 0 ? data : '');
+
+    // Guardar errores en el estado
+    if (level === 'ERROR') {
+        connectionState.errors.push({
+            timestamp,
+            message,
+            data
+        });
+        // Mantener solo los últimos 10 errores
+        if (connectionState.errors.length > 10) {
+            connectionState.errors.shift();
+        }
+    }
+}
+
+/**
  * Calcular delay con backoff exponencial
  */
 function calculateBackoff(attempt) {
     return Math.min(INITIAL_RETRY_DELAY * Math.pow(2, attempt), MAX_RETRY_DELAY);
+}
+
+/**
+ * Validar que la conexión está lista
+ */
+function ensureConnected() {
+    if (!sock) {
+        throw new Error('Socket no inicializado');
+    }
+
+    if (!isConnected) {
+        throw new Error('WhatsApp no conectado');
+    }
+
+    if (!sock.ws || sock.ws.readyState !== 1) {
+        throw new Error(`WebSocket no está abierto (state: ${sock.ws?.readyState})`);
+    }
+
+    return true;
+}
+
+/**
+ * Validar sesión guardada
+ */
+function validateSession() {
+    const credsPath = path.join(authDir, 'creds.json');
+
+    if (!fs.existsSync(credsPath)) {
+        log('INFO', 'No hay sesión guardada');
+        return false;
+    }
+
+    try {
+        const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
+        const isValid = creds && creds.me && creds.me.id;
+        log('INFO', 'Sesión validada', { valid: isValid });
+        return isValid;
+    } catch (error) {
+        log('ERROR', 'Error validando sesión', { error: error.message });
+        return false;
+    }
+}
+
+/**
+ * Enviar mensaje con reintentos
+ */
+async function sendMessageWithRetry(to, message, retries = 3) {
+    for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+            // Validar conexión
+            ensureConnected();
+
+            log('INFO', `Enviando mensaje (intento ${attempt + 1}/${retries})`, { to });
+
+            // Enviar con timeout
+            const sendPromise = sock.sendMessage(to, message);
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout enviando mensaje')), MESSAGE_TIMEOUT)
+            );
+
+            await Promise.race([sendPromise, timeoutPromise]);
+
+            connectionState.messagesSent++;
+            connectionState.lastActivity = new Date().toISOString();
+            log('SUCCESS', 'Mensaje enviado correctamente', { to });
+
+            return true;
+        } catch (error) {
+            log('WARN', `Error enviando mensaje (intento ${attempt + 1}/${retries})`, {
+                error: error.message,
+                to
+            });
+
+            if (attempt === retries - 1) {
+                log('ERROR', 'Falló envío de mensaje después de todos los reintentos', {
+                    error: error.message,
+                    to
+                });
+                throw error;
+            }
+
+            // Esperar antes de reintentar
+            await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+        }
+    }
 }
 
 /**
@@ -58,18 +186,22 @@ function startKeepalive() {
             if (sock && sock.ws) {
                 const state = sock.ws.readyState;
                 if (state !== 1) { // 1 = OPEN
-                    console.warn('⚠️  WebSocket not open (state: ' + state + '), will reconnect on next check');
+                    log('WARN', 'WebSocket no está abierto', { state });
                     isConnected = false;
                 } else {
                     connectionState.lastActivity = new Date().toISOString();
+                    log('DEBUG', 'Keepalive check OK');
                 }
+            } else if (isConnected) {
+                log('WARN', 'Socket no disponible pero marcado como conectado');
+                isConnected = false;
             }
         } catch (error) {
-            console.error('❌ Keepalive check failed:', error);
+            log('ERROR', 'Keepalive check falló', { error: error.message });
         }
     }, KEEPALIVE_INTERVAL);
 
-    console.log(`💓 Keepalive started (every ${KEEPALIVE_INTERVAL / 1000}s)`);
+    log('INFO', `Keepalive iniciado (intervalo: ${KEEPALIVE_INTERVAL / 1000}s)`);
 }
 
 /**
@@ -79,7 +211,7 @@ function stopKeepalive() {
     if (keepaliveInterval) {
         clearInterval(keepaliveInterval);
         keepaliveInterval = null;
-        console.log('💔 Keepalive stopped');
+        log('INFO', 'Keepalive detenido');
     }
 }
 
@@ -89,9 +221,18 @@ function stopKeepalive() {
  */
 export async function connectWhatsApp(messageHandler) {
     try {
-        console.log('📱 Iniciando conexión a WhatsApp...');
+        log('INFO', 'Iniciando conexión a WhatsApp...');
+
+        // Validar sesión si existe
+        if (hasStoredSession()) {
+            if (!validateSession()) {
+                log('WARN', 'Sesión inválida, se requerirá nuevo QR');
+            }
+        }
 
         const { version } = await fetchLatestBaileysVersion();
+        log('INFO', 'Baileys version obtenida', { version });
+
         const { state, saveCreds } = await useMultiFileAuthState(authDir);
 
         sock = makeWASocket({
@@ -101,83 +242,94 @@ export async function connectWhatsApp(messageHandler) {
             browser: ['Alquimia Dashboard', 'Chrome', '1.0.0'],
             markOnlineOnConnect: true,
             syncFullHistory: false,
-            printQRInTerminal: false
+            printQRInTerminal: false,
+            connectTimeoutMs: CONNECTION_TIMEOUT
         });
+
+        log('INFO', 'Socket creado correctamente');
 
         // Guardar credenciales
         sock.ev.on('creds.update', saveCreds);
 
         // Manejar actualizaciones de conexión
         sock.ev.on('connection.update', async (update) => {
-            const { connection, lastDisconnect, qr } = update;
+            try {
+                const { connection, lastDisconnect, qr } = update;
 
-            if (qr) {
-                // Generar QR code como data URL
-                qrCodeData = await QRCode.toDataURL(qr);
-                connectionState.qr = qrCodeData;
-                reconnectAttempts = 0;
-                console.log('📱 Nuevo QR generado');
-            }
-
-            if (connection === 'close') {
-                const statusCode = lastDisconnect?.error?.output?.statusCode;
-                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-
-                console.log('⚠️  Conexión cerrada. Código:', statusCode);
-
-                isConnected = false;
-                connectionState.connected = false;
-                connectionState.lastDisconnected = new Date().toISOString();
-                qrCodeData = null;
-                connectionState.qr = null;
-
-                // Detener keepalive
-                stopKeepalive();
-
-                // Manejar diferentes razones de desconexión
-                if (statusCode === DisconnectReason.loggedOut) {
-                    console.log('❌ Sesión cerrada (logged out). Se requiere nuevo QR.');
+                if (qr) {
+                    qrCodeData = await QRCode.toDataURL(qr);
+                    connectionState.qr = qrCodeData;
                     reconnectAttempts = 0;
-                    return;
+                    log('INFO', 'QR code generado');
                 }
 
-                if (shouldReconnect && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                    const delay = calculateBackoff(reconnectAttempts);
-                    reconnectAttempts++;
-                    connectionState.reconnectAttempts = reconnectAttempts;
+                if (connection === 'close') {
+                    const statusCode = lastDisconnect?.error?.output?.statusCode;
+                    const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-                    console.log(`🔄 Reintentando conexión en ${delay}ms (intento ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+                    log('WARN', 'Conexión cerrada', {
+                        statusCode,
+                        reason: DisconnectReason[statusCode] || 'Unknown',
+                        shouldReconnect
+                    });
 
-                    setTimeout(() => connectWhatsApp(messageHandler), delay);
-                } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-                    console.log('❌ Máximo de intentos de reconexión alcanzado.');
+                    isConnected = false;
+                    connectionState.connected = false;
+                    connectionState.lastDisconnected = new Date().toISOString();
+                    qrCodeData = null;
+                    connectionState.qr = null;
+
+                    stopKeepalive();
+
+                    if (statusCode === DisconnectReason.loggedOut) {
+                        log('ERROR', 'Sesión cerrada (logged out). Se requiere nuevo QR');
+                        reconnectAttempts = 0;
+                        connectionState.reconnectAttempts = 0;
+                        return;
+                    }
+
+                    if (shouldReconnect && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                        const delay = calculateBackoff(reconnectAttempts);
+                        reconnectAttempts++;
+                        connectionState.reconnectAttempts = reconnectAttempts;
+
+                        log('INFO', `Reintentando conexión`, {
+                            attempt: reconnectAttempts,
+                            maxAttempts: MAX_RECONNECT_ATTEMPTS,
+                            delayMs: delay
+                        });
+
+                        setTimeout(() => connectWhatsApp(messageHandler), delay);
+                    } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                        log('ERROR', 'Máximo de intentos de reconexión alcanzado');
+                        reconnectAttempts = 0;
+                        connectionState.reconnectAttempts = 0;
+                    }
+                } else if (connection === 'open') {
+                    log('SUCCESS', '¡Conectado a WhatsApp exitosamente!');
+                    isConnected = true;
+                    connectionState.connected = true;
+                    connectionState.lastConnected = new Date().toISOString();
+                    connectionState.lastActivity = new Date().toISOString();
+                    qrCodeData = null;
+                    connectionState.qr = null;
                     reconnectAttempts = 0;
                     connectionState.reconnectAttempts = 0;
-                }
-            } else if (connection === 'open') {
-                console.log('✅ ¡Conectado a WhatsApp exitosamente!');
-                isConnected = true;
-                connectionState.connected = true;
-                connectionState.lastConnected = new Date().toISOString();
-                connectionState.lastActivity = new Date().toISOString();
-                qrCodeData = null;
-                connectionState.qr = null;
-                reconnectAttempts = 0;
-                connectionState.reconnectAttempts = 0;
 
-                // Iniciar keepalive
-                startKeepalive();
+                    startKeepalive();
 
-                // Obtener info del número conectado
-                try {
-                    const user = sock.user;
-                    if (user) {
-                        connectionState.phoneNumber = user.id.split(':')[0];
-                        console.log(`📞 Número conectado: ${connectionState.phoneNumber}`);
+                    try {
+                        const user = sock.user;
+                        if (user) {
+                            connectionState.phoneNumber = user.id.split(':')[0];
+                            log('INFO', 'Número conectado', { phoneNumber: connectionState.phoneNumber });
+                        }
+                    } catch (error) {
+                        log('WARN', 'No se pudo obtener número de teléfono', { error: error.message });
                     }
-                } catch (error) {
-                    console.warn('⚠️  No se pudo obtener número de teléfono');
                 }
+            } catch (error) {
+                log('ERROR', 'Error en connection.update handler', { error: error.message });
             }
         });
 
@@ -186,7 +338,6 @@ export async function connectWhatsApp(messageHandler) {
             try {
                 const msg = m.messages[0];
 
-                // Ignorar mensajes sin contenido o propios
                 if (!msg.message) return;
                 if (msg.key.fromMe) return;
 
@@ -196,32 +347,36 @@ export async function connectWhatsApp(messageHandler) {
 
                 if (!text) return;
 
-                console.log(`📩 WhatsApp mensaje de ${from}: ${text}`);
+                connectionState.messagesReceived++;
+                log('INFO', 'Mensaje recibido', { from, length: text.length });
                 connectionState.lastActivity = new Date().toISOString();
 
-                // Mostrar "escribiendo..."
                 await sock.sendPresenceUpdate('composing', from);
 
-                // Procesar mensaje con el handler proporcionado (pasar número de teléfono)
                 const response = await messageHandler(text, from);
 
-                // Enviar respuesta
-                await sock.sendMessage(from, { text: response });
+                await sendMessageWithRetry(from, { text: response });
 
-                console.log(`✅ Respuesta enviada a WhatsApp`);
-                connectionState.lastActivity = new Date().toISOString();
+                log('SUCCESS', 'Respuesta enviada', { from });
             } catch (error) {
-                console.error('❌ Error procesando mensaje de WhatsApp:', error);
+                log('ERROR', 'Error procesando mensaje', {
+                    error: error.message,
+                    stack: error.stack
+                });
             }
         });
 
         return { success: true };
     } catch (error) {
-        console.error('❌ Error al conectar WhatsApp:', error);
+        log('ERROR', 'Error al conectar WhatsApp', {
+            error: error.message,
+            stack: error.stack
+        });
+
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             const delay = calculateBackoff(reconnectAttempts);
             reconnectAttempts++;
-            console.log(`🔄 Reintentando en ${delay}ms...`);
+            log('INFO', `Reintentando en ${delay}ms...`);
             setTimeout(() => connectWhatsApp(messageHandler), delay);
         }
         throw error;
@@ -246,7 +401,28 @@ export function getStatus() {
         lastDisconnected: connectionState.lastDisconnected,
         lastActivity: connectionState.lastActivity,
         uptime: uptime,
+        messagesSent: connectionState.messagesSent,
+        messagesReceived: connectionState.messagesReceived,
+        recentErrors: connectionState.errors.slice(-5),
         timestamp: new Date().toISOString()
+    };
+}
+
+/**
+ * Obtener health check detallado
+ */
+export function getHealth() {
+    const status = getStatus();
+    const socketState = sock?.ws?.readyState;
+    const socketStateNames = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+
+    return {
+        ...status,
+        socketState: socketState !== undefined ? socketStateNames[socketState] : 'NOT_INITIALIZED',
+        socketStateCode: socketState,
+        healthy: isConnected && socketState === 1,
+        hasSession: hasStoredSession(),
+        sessionValid: validateSession()
     };
 }
 
@@ -262,12 +438,18 @@ export function hasStoredSession() {
  * Desconectar WhatsApp
  */
 export function disconnect() {
+    log('INFO', 'Desconectando WhatsApp...');
     stopKeepalive();
 
     if (sock) {
-        sock.end();
+        try {
+            sock.end();
+        } catch (error) {
+            log('WARN', 'Error al cerrar socket', { error: error.message });
+        }
         sock = null;
     }
+
     isConnected = false;
     connectionState.connected = false;
     connectionState.lastDisconnected = new Date().toISOString();
@@ -276,7 +458,7 @@ export function disconnect() {
     reconnectAttempts = 0;
     connectionState.reconnectAttempts = 0;
 
-    console.log('📱 WhatsApp desconectado');
+    log('INFO', 'WhatsApp desconectado');
     return { success: true };
 }
 
@@ -284,13 +466,14 @@ export function disconnect() {
  * Eliminar sesión guardada
  */
 export function clearSession() {
+    log('INFO', 'Eliminando sesión guardada...');
     disconnect();
 
     try {
         if (fs.existsSync(authDir)) {
             fs.rmSync(authDir, { recursive: true, force: true });
             fs.mkdirSync(authDir, { recursive: true });
-            console.log('🗑️  Sesión de WhatsApp eliminada');
+            log('SUCCESS', 'Sesión eliminada correctamente');
         }
 
         connectionState = {
@@ -300,12 +483,15 @@ export function clearSession() {
             reconnectAttempts: 0,
             phoneNumber: null,
             qr: null,
-            lastActivity: null
+            lastActivity: null,
+            messagesSent: 0,
+            messagesReceived: 0,
+            errors: []
         };
 
         return { success: true, message: 'Sesión eliminada correctamente' };
     } catch (error) {
-        console.error('❌ Error eliminando sesión:', error);
+        log('ERROR', 'Error eliminando sesión', { error: error.message });
         return { success: false, error: error.message };
     }
 }
@@ -314,6 +500,7 @@ export function clearSession() {
  * Reiniciar conexión
  */
 export async function restart(messageHandler) {
+    log('INFO', 'Reiniciando conexión WhatsApp...');
     disconnect();
     await new Promise(resolve => setTimeout(resolve, 2000));
     return connectWhatsApp(messageHandler);
