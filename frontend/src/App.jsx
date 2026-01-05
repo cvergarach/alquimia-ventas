@@ -213,6 +213,22 @@ function App() {
     localStorage.removeItem('alquimia_user')
   }
 
+  const handleClearWhatsAppSession = async () => {
+    if (!window.confirm('¿Estás seguro de eliminar la sesión guardada? Tendrás que escanear el QR nuevamente.')) return;
+    try {
+      const response = await axios.delete(`${API_URL}/api/whatsapp/session`);
+      if (response.data.success) {
+        alert('Sesión eliminada correctamente. Puedes conectar nuevamente.');
+        setWhatsappConnected(false);
+        setWhatsappQR(null);
+        setWhatsappStatus(null);
+      }
+    } catch (error) {
+      console.error('Error clearing WhatsApp session:', error);
+      alert('Error al eliminar la sesión');
+    }
+  };
+
   const fetchManagedUsers = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/users`)
