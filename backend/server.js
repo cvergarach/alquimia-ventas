@@ -1339,7 +1339,7 @@ FORMATO DE RESPUESTA (CRÍTICO para WhatsApp):
 Cuando uses formatos numéricos: Punto para miles, coma para decimales (ej: $1.234,50).`;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.5-flash',
       tools: currentTools,
       systemInstruction: systemPrompt
     });

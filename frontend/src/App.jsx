@@ -101,7 +101,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState(null)
   const [activeSheet, setActiveSheet] = useState('Metas')
-  const [modelConfig, setModelConfig] = useState({ provider: 'gemini', modelId: 'gemini-1.5-flash' })
+  const [modelConfig, setModelConfig] = useState({ provider: 'gemini', modelId: 'gemini-2.5-flash' })
   const [kpis, setKpis] = useState({ total_unidades: 0, total_ingreso: 0, total_margen: 0, margenPct: 0 })
   const [chartsData, setChartsData] = useState({ trend: [], channels: [], brands: [] })
   const [activeSection, setActiveSection] = useState('dashboard') // dashboard, chats, data
@@ -112,7 +112,7 @@ function App() {
   const [editingTool, setEditingTool] = useState(null)
   const [magicPrompt, setMagicPrompt] = useState('')
   const [magicLoading, setMagicLoading] = useState(false)
-  const [magicModel, setMagicModel] = useState('gemini-1.5-pro')
+  const [magicModel, setMagicModel] = useState('gemini-2.5-flash')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [managedUsers, setManagedUsers] = useState([])
@@ -322,10 +322,27 @@ function App() {
   }
 
   const availableModels = [
+    // Gemini 3.x (más recientes - noviembre/diciembre 2025)
+    { id: 'gemini-3-pro-latest', name: 'Gemini 3 Pro Latest', provider: 'gemini', icon: '🚀' },
+    { id: 'gemini-3-flash-latest', name: 'Gemini 3 Flash Latest', provider: 'gemini', icon: '⚡' },
+    { id: 'gemini-3-pro-image-latest', name: 'Gemini 3 Pro Image Latest', provider: 'gemini', icon: '🖼️' },
+
+    // Gemini 2.5 (septiembre 2025)
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'gemini', icon: '💎' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini', icon: '⚡' },
+    { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', provider: 'gemini', icon: '💨' },
+
+    // Gemini 2.0 (diciembre 2024)
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'gemini', icon: '⚡' },
+    { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite', provider: 'gemini', icon: '💨' },
+
+    // Gemini 1.5 (generación anterior)
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini', icon: '💎' },
     { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini', icon: '⚡' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini', icon: '' },
-    { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', provider: 'claude', icon: '' },
-    { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', provider: 'claude', icon: '' },
+
+    // Claude models
+    { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', provider: 'claude', icon: '🎵' },
+    { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', provider: 'claude', icon: '🍃' },
   ]
 
   const scrollToBottom = () => {
