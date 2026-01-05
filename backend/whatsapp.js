@@ -262,32 +262,66 @@ async function sendMessageWithRetry(to, message, retries = 3) {
 /**
  * Iniciar keepalive para mantener conexión activa
  */
+let messageHandlerRef = null; // Guardar referencia al messageHandler para reconexión
+
 function startKeepalive() {
     if (keepaliveInterval) {
         clearInterval(keepaliveInterval);
     }
 
-    keepaliveInterval = setInterval(() => {
+    let consecutiveFailures = 0;
+    const MAX_CONSECUTIVE_FAILURES = 3;
+
+    keepaliveInterval = setInterval(async () => {
         try {
             if (sock && sock.ws) {
                 const state = sock.ws.readyState;
                 if (state !== 1) { // 1 = OPEN
-                    log('WARN', 'WebSocket no está abierto', { state });
+                    consecutiveFailures++;
+                    log('WARN', 'WebSocket cerrado', {
+                        state,
+                        consecutiveFailures,
+                        wasConnected: isConnected
+                    });
+
                     isConnected = false;
+
+                    // Si falla 3 veces seguidas, forzar reconexión
+                    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES && messageHandlerRef) {
+                        log('ERROR', 'Socket cerrado persistentemente, forzando reconexión...');
+                        consecutiveFailures = 0;
+
+                        // Detener keepalive actual
+                        stopKeepalive();
+
+                        // Forzar reconexión
+                        setTimeout(() => {
+                            log('INFO', 'Ejecutando reconexión forzada');
+                            connectWhatsApp(messageHandlerRef).catch(err => {
+                                log('ERROR', 'Error en reconexión forzada', { error: err.message });
+                            });
+                        }, 2000);
+                    }
                 } else {
+                    // Socket OK, resetear contador
+                    if (consecutiveFailures > 0) {
+                        log('INFO', 'Socket recuperado');
+                        consecutiveFailures = 0;
+                    }
                     connectionState.lastActivity = new Date().toISOString();
-                    log('DEBUG', 'Keepalive check OK');
                 }
             } else if (isConnected) {
                 log('WARN', 'Socket no disponible pero marcado como conectado');
                 isConnected = false;
+                consecutiveFailures++;
             }
         } catch (error) {
             log('ERROR', 'Keepalive check falló', { error: error.message });
+            consecutiveFailures++;
         }
     }, KEEPALIVE_INTERVAL);
 
-    log('INFO', `Keepalive iniciado (intervalo: ${KEEPALIVE_INTERVAL / 1000}s)`);
+    log('INFO', `Keepalive iniciado con reconexión agresiva (intervalo: ${KEEPALIVE_INTERVAL / 1000}s)`);
 }
 
 /**
@@ -307,6 +341,9 @@ function stopKeepalive() {
  */
 export async function connectWhatsApp(messageHandler) {
     try {
+        // Guardar referencia para reconexión agresiva
+        messageHandlerRef = messageHandler;
+
         log('INFO', 'Iniciando conexión a WhatsApp...');
 
         // Intentar cargar sesión desde Supabase primero
