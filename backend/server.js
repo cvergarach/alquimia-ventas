@@ -1704,6 +1704,83 @@ app.post('/api/whatsapp/restart', async (req, res) => {
   }
 });
 
+// ============================================
+// WHATSAPP BUSINESS API ENDPOINTS
+// ============================================
+
+import * as whatsappBusiness from './whatsapp-business.js';
+
+// Webhook verification (GET)
+app.get('/api/whatsapp/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+    console.log('✅ [WhatsApp Webhook] Verificado');
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+// Webhook para recibir mensajes (POST)
+app.post('/api/whatsapp/webhook', async (req, res) => {
+  try {
+    res.sendStatus(200); // Responder rápido a Meta
+
+    const body = req.body;
+    if (body.object !== 'whatsapp_business_account') return;
+
+    const message = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+    if (!message?.text?.body) return;
+
+    const from = message.from;
+    const text = message.text.body;
+    const messageId = message.id;
+
+    console.log(`📱 [WhatsApp] Mensaje de ${from}: ${text}`);
+
+    await whatsappBusiness.markAsRead(messageId);
+    await whatsappBusiness.sendMessage(from, '⏳ Procesando...');
+
+    // Procesar en background
+    (async () => {
+      try {
+        const response = await processWhatsAppMessage(text, from);
+        await whatsappBusiness.sendMessage(from, response);
+        console.log('✅ [WhatsApp] Respuesta enviada');
+      } catch (error) {
+        console.error('❌ [WhatsApp] Error:', error);
+        await whatsappBusiness.sendMessage(from, '❌ Error procesando mensaje');
+      }
+    })();
+  } catch (error) {
+    console.error('❌ [WhatsApp Webhook] Error:', error);
+  }
+});
+
+// Endpoint para testing
+app.post('/api/whatsapp/send', async (req, res) => {
+  try {
+    const { to, message } = req.body;
+    const result = await whatsappBusiness.sendMessage(to, message);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Status de Business API
+app.get('/api/whatsapp/business/status', async (req, res) => {
+  try {
+    const status = await whatsappBusiness.getAPIStatus();
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ healthy: false, error: error.message });
+  }
+});
+
 // Iniciar servidor
 app.listen(PORT, async () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
